@@ -1,7 +1,5 @@
 """Dictpath paths module"""
 from contextlib import contextmanager
-import io
-import sys
 
 from six import text_type
 
@@ -13,7 +11,8 @@ SEPARATOR = '/'
 
 class BasePath(object):
 
-    def __init__(self, *args, separator=SEPARATOR):
+    def __init__(self, *args, **kwargs):
+        separator = kwargs.pop('separator', SEPARATOR)
         self.parts = parse_args(args)
         self.separator = separator
 
@@ -96,19 +95,16 @@ class BasePath(object):
 
 class AccessorPath(BasePath):
 
-    def __init__(
-        self, accessor, *args, separator=SEPARATOR,
-    ):
+    def __init__(self, accessor, *args, **kwargs):
+        separator = kwargs.pop('separator', SEPARATOR)
         super(AccessorPath, self).__init__(
             *args, separator=separator)
         self.accessor = accessor
 
     @classmethod
     def _from_parsed_parts(cls, accessor, parts, separator=SEPARATOR):
-        self = super(AccessorPath, cls).__new__(cls)
-        self.accessor = accessor
+        self = cls(accessor, separator=separator)
         self.parts = parts
-        self.separator = separator
         return self
 
     def __iter__(self):
@@ -164,12 +160,6 @@ class AccessorPath(BasePath):
         if key in self:
             return self / key
         return default
-
-    @classmethod
-    def _from_parsed_parts(cls, accessor, parts, separator=SEPARATOR):
-        self = cls(accessor, separator=separator)
-        self.parts = parts
-        return self
 
     def _make_child(self, args):
         parts = parse_args(args, self.separator)

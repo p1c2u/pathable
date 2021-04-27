@@ -1,8 +1,6 @@
 """Dictpath accessors module"""
 from contextlib import contextmanager
 
-from six import iteritems
-
 
 class DictOrListAccessor(object):
 
