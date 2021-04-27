@@ -1,7 +1,5 @@
 """Dictpath parsers module"""
-import sys
-
-from six import text_type, u
+from six import text_type
 
 
 def parse_parts(parts, sep='/'):
@@ -15,10 +13,10 @@ def parse_parts(parts, sep='/'):
         if sep in part:
             for x in reversed(part.split(sep)):
                 if x and x != '.':
-                    parsed.append(sys.intern(x))
+                    parsed.append(x)
         else:
             if part and part != '.':
-                parsed.append(sys.intern(part))
+                parsed.append(part)
     parsed.reverse()
     return parsed
 
@@ -30,12 +28,12 @@ def parse_args(args, sep='/'):
             parts += a.parts
         else:
             if isinstance(a, text_type):
-                parts.append(u(a))
+                parts.append(a)
             elif isinstance(a, int):
                 parts.append(a)
             else:
                 raise TypeError(
-                    "argument should be a str object or a Path "
+                    "argument should be a text object or a Path "
                     "object returning str, not %r"
                     % type(a))
     return parse_parts(parts, sep)
