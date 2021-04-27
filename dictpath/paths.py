@@ -11,7 +11,8 @@ SEPARATOR = '/'
 
 class BasePath(object):
 
-    def __init__(self, *args, separator=SEPARATOR):
+    def __init__(self, *args, **kwargs):
+        separator = kwargs.pop('separator', SEPARATOR)
         self.parts = parse_args(args)
         self.separator = separator
 
@@ -94,9 +95,8 @@ class BasePath(object):
 
 class AccessorPath(BasePath):
 
-    def __init__(
-        self, accessor, *args, separator=SEPARATOR,
-    ):
+    def __init__(self, accessor, *args, **kwargs):
+        separator = kwargs.pop('separator', SEPARATOR)
         super(AccessorPath, self).__init__(
             *args, separator=separator)
         self.accessor = accessor
