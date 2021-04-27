@@ -18,6 +18,7 @@ Usage
 #####
 
 .. code-block:: python
+
    from dictpath import DictPath
    
    d = {
