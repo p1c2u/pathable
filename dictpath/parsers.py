@@ -1,5 +1,11 @@
 """Dictpath parsers module"""
-from six import text_type
+from six import text_type, binary_type
+
+
+def fsdecode(part):
+    if isinstance(part, binary_type):
+        return part.decode('ascii')
+    return part
 
 
 def parse_parts(parts, sep='/'):
@@ -27,6 +33,7 @@ def parse_args(args, sep='/'):
         if hasattr(a, 'parts'):
             parts += a.parts
         else:
+            a = fsdecode(a)
             if isinstance(a, text_type):
                 parts.append(a)
             elif isinstance(a, int):
@@ -34,6 +41,6 @@ def parse_args(args, sep='/'):
             else:
                 raise TypeError(
                     "argument should be a text object or a Path "
-                    "object returning str, not %r"
+                    "object returning text, binary not %r"
                     % type(a))
     return parse_parts(parts, sep)

@@ -1,7 +1,7 @@
 from __future__ import division
 
 import pytest
-from six import u
+from six import u, b
 
 from dictpath.paths import SEPARATOR, BasePath, DictOrListPath
 
@@ -14,14 +14,29 @@ class TestBasePathInit(object):
         assert p.parts == []
         assert p.separator == SEPARATOR
 
-    def test_part_string(self):
+    def test_part_text(self):
         part = u('part')
         p = BasePath(part)
 
         assert p.parts == [part, ]
         assert p.separator == SEPARATOR
 
-    def test_part_string_many(self):
+    def test_part_binary(self):
+        part = b('part')
+        p = BasePath(part)
+
+        assert p.parts == [part, ]
+        assert p.separator == SEPARATOR
+
+    def test_part_binary_many(self):
+        part1 = b('part1')
+        part2 = b('part2')
+        p = BasePath(part1, part2)
+
+        assert p.parts == [part1, part2]
+        assert p.separator == SEPARATOR
+
+    def test_part_text_many(self):
         part1 = u('part1')
         part2 = u('part2')
         p = BasePath(part1, part2)
@@ -165,6 +180,22 @@ class TestBasePathTruediv(object):
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
+                b(''), u(''),
+                [], SEPARATOR,
+            ],
+            [
+                b(''), u('part1'),
+                ['part1'], SEPARATOR,
+            ],
+            [
+                b('part1'), u(''),
+                ['part1'], SEPARATOR,
+            ],
+            [
+                b('part1'), u('part2'),
+                ['part1', 'part2'], SEPARATOR,
+            ],
+            [
                 u('part1'), BasePath(u('part2')),
                 ['part1', 'part2'], SEPARATOR,
             ],
@@ -236,6 +267,22 @@ class TestBasePathRtruediv(object):
             ],
             [
                 u('part1'), u('part2'),
+                ['part1', 'part2'], SEPARATOR,
+            ],
+            [
+                b(''), u(''),
+                [], SEPARATOR,
+            ],
+            [
+                b(''), u('part1'),
+                ['part1'], SEPARATOR,
+            ],
+            [
+                b('part1'), u(''),
+                ['part1'], SEPARATOR,
+            ],
+            [
+                b('part1'), u('part2'),
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
