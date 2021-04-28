@@ -25,7 +25,7 @@ class TestBasePathInit(object):
         part = b('part')
         p = BasePath(part)
 
-        assert p.parts == [part, ]
+        assert p.parts == [u('part'), ]
         assert p.separator == SEPARATOR
 
     def test_part_binary_many(self):
@@ -33,7 +33,7 @@ class TestBasePathInit(object):
         part2 = b('part2')
         p = BasePath(part1, part2)
 
-        assert p.parts == [part1, part2]
+        assert p.parts == [u('part1'), u('part2')]
         assert p.separator == SEPARATOR
 
     def test_part_text_many(self):
