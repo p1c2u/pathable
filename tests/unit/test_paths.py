@@ -427,7 +427,7 @@ class TestDictOrListPathPathIteritems(object):
         result = iteritems(p)
 
         assert type(result) is GeneratorType
-        assert list(result) == []
+        assert dict(result) == {}
 
     def test_keys(self):
         resource = {
@@ -439,7 +439,7 @@ class TestDictOrListPathPathIteritems(object):
         result = iteritems(p)
 
         assert type(result) is GeneratorType
-        assert list(result) == [
-            ('test1', p / 'test1'),
-            ('test2', p / 'test2'),
-        ]
+        assert dict(result) == {
+            'test1': p / 'test1',
+            'test2': p / 'test2',
+        }
