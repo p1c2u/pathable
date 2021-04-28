@@ -158,7 +158,7 @@ class AccessorPath(BasePath):
 
     def get(self, key, default=None):
         if key in self:
-            return self / key
+            return self.__truediv__(key)
         return default
 
     def _make_child(self, args):
