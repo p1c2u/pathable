@@ -8,7 +8,7 @@ from dictpath.paths import (
 
 __author__ = 'Artur Maciag'
 __email__ = 'maciag.artur@gmail.com'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 __url__ = 'https://github.com/p1c2u/dictpath'
 __license__ = 'Apache License, Version 2.0'
 
