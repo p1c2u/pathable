@@ -148,6 +148,9 @@ class AccessorPath(BasePath):
         for idx in range(self.accessor.len(self.parts)):
             yield self._make_child_relpath(idx)
 
+    def iteritems(self):
+        return self.items()
+
     def items(self):
         for key in self.accessor.keys(self.parts):
             yield key, self._make_child_relpath(key)

@@ -1,7 +1,8 @@
 from __future__ import division
+from types import GeneratorType
 
 import pytest
-from six import u, b
+from six import u, b, iteritems
 
 from dictpath.paths import SEPARATOR, BasePath, DictOrListPath
 
@@ -415,3 +416,30 @@ class TestDictOrListPathPathContains(object):
         result = 'test4' in p
 
         assert result is False
+
+
+class TestDictOrListPathPathIteritems(object):
+
+    def test_empty(self):
+        resource = {}
+        p = DictOrListPath(resource)
+
+        result = iteritems(p)
+
+        assert type(result) is GeneratorType
+        assert list(result) == []
+
+    def test_keys(self):
+        resource = {
+            'test1': 1,
+            'test2': 2,
+        }
+        p = DictOrListPath(resource)
+
+        result = iteritems(p)
+
+        assert type(result) is GeneratorType
+        assert list(result) == [
+            ('test1', p / 'test1'),
+            ('test2', p / 'test2'),
+        ]
