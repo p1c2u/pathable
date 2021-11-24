@@ -1,4 +1,4 @@
-"""Dictpath accessors module"""
+"""Pathable accessors module"""
 from contextlib import contextmanager
 
 

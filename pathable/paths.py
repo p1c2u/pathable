@@ -1,10 +1,10 @@
-"""Dictpath paths module"""
+"""Pathable paths module"""
 from contextlib import contextmanager
 
 from six import text_type
 
-from dictpath.accessors import DictOrListAccessor
-from dictpath.parsers import parse_args
+from pathable.accessors import DictOrListAccessor
+from pathable.parsers import parse_args
 
 SEPARATOR = '/'
 

@@ -1,12 +1,12 @@
 ********
-dictpath
+pathable
 ********
 
 
 About
 #####
 
-Object-oriented dictionary paths
+Object-oriented paths
 
 Key features
 ************
@@ -19,7 +19,7 @@ Usage
 
 .. code-block:: python
 
-   from dictpath import DictPath
+   from pathable import DictPath
    
    d = {
        "parts": {

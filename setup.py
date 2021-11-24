@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Dictpath setup module"""
+"""Pathable setup module"""
 import os
 import re
 import sys
@@ -39,7 +39,7 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
-init_path = os.path.join('dictpath', '__init__.py')
+init_path = os.path.join('pathable', '__init__.py')
 init_py = read_file(init_path)
 metadata = get_metadata(init_py)
 
