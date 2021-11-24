@@ -1,8 +1,8 @@
 import pytest
 from six import u
 
-from dictpath.paths import BasePath
-from dictpath.parsers import parse_parts, parse_args
+from pathable.paths import BasePath
+from pathable.parsers import parse_parts, parse_args
 
 
 class TestParseParts(object):

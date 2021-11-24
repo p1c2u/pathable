@@ -4,7 +4,7 @@ from types import GeneratorType
 import pytest
 from six import u, b, iteritems
 
-from dictpath.paths import SEPARATOR, BasePath, DictOrListPath
+from pathable.paths import SEPARATOR, BasePath, DictOrListPath
 
 
 class TestBasePathInit(object):

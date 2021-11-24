@@ -1,4 +1,4 @@
-"""Dictpath parsers module"""
+"""Pathable parsers module"""
 from six import text_type, binary_type
 
 

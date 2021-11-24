@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Dictpath module"""
-from dictpath.paths import (
+"""Pathable module"""
+from pathable.paths import (
     BasePath, AccessorPath, DictOrListPath,
     DictOrListPath as DictPath,
     DictOrListPath as ListPath,
@@ -9,7 +9,7 @@ from dictpath.paths import (
 __author__ = 'Artur Maciag'
 __email__ = 'maciag.artur@gmail.com'
 __version__ = '0.1.3'
-__url__ = 'https://github.com/p1c2u/dictpath'
+__url__ = 'https://github.com/p1c2u/pathable'
 __license__ = 'Apache License, Version 2.0'
 
 __all__ = [
