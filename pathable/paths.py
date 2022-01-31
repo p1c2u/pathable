@@ -3,13 +3,14 @@ from contextlib import contextmanager
 
 from six import text_type
 
-from pathable.accessors import DictOrListAccessor
+from pathable.accessors import LookupAccessor
 from pathable.parsers import parse_args
 
 SEPARATOR = '/'
 
 
 class BasePath(object):
+    """Base path"""
 
     def __init__(self, *args, **kwargs):
         separator = kwargs.pop('separator', SEPARATOR)
@@ -94,6 +95,7 @@ class BasePath(object):
 
 
 class AccessorPath(BasePath):
+    """Path for object that can be read by accessor"""
 
     def __init__(self, accessor, *args, **kwargs):
         separator = kwargs.pop('separator', SEPARATOR)
@@ -178,9 +180,10 @@ class AccessorPath(BasePath):
             self.accessor, parts, self.separator)
 
 
-class DictOrListPath(AccessorPath):
+class LookupPath(AccessorPath):
+    """Path for object that supports __getitem__ lookups"""
 
-    def __init__(self, dict_or_list, *args, **kwargs):
-        accessor = DictOrListAccessor(dict_or_list)
-        return super(DictOrListPath, self).__init__(
+    def __init__(self, lookup, *args, **kwargs):
+        accessor = LookupAccessor(lookup)
+        return super(LookupPath, self).__init__(
             accessor, *args, **kwargs)
