@@ -2,10 +2,11 @@
 from contextlib import contextmanager
 
 
-class DictOrListAccessor(object):
+class LookupAccessor(object):
+    """Accessor for object that supports __getitem__ lookups"""
 
-    def __init__(self, dict_or_list):
-        self.dict_or_list = dict_or_list
+    def __init__(self, lookup):
+        self.lookup = lookup
 
     def stat(self, parts):
         return NotImplementedError
@@ -20,7 +21,7 @@ class DictOrListAccessor(object):
 
     @contextmanager
     def open(self, parts):
-        content = self.dict_or_list
+        content = self.lookup
         for part in parts:
             content = content[part]
         try:
