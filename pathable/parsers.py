@@ -1,9 +1,8 @@
 """Pathable parsers module"""
-from six import text_type, binary_type
 
 
 def fsdecode(part):
-    if isinstance(part, binary_type):
+    if isinstance(part, bytes):
         return part.decode('ascii')
     return part
 
@@ -34,7 +33,7 @@ def parse_args(args, sep='/'):
             parts += a.parts
         else:
             a = fsdecode(a)
-            if isinstance(a, text_type):
+            if isinstance(a, str):
                 parts.append(a)
             elif isinstance(a, int):
                 parts.append(a)
