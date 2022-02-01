@@ -1,5 +1,4 @@
 import pytest
-from six import u
 
 from pathable.paths import BasePath
 from pathable.parsers import parse_parts, parse_args
@@ -75,21 +74,21 @@ class TestParseArgs(object):
         assert result == []
 
     def test_string(self):
-        args = [u('test')]
+        args = ["test"]
 
         result = parse_args(args, self.separator)
 
         assert result == ['test']
 
     def test_string_many(self):
-        args = [u('test'), u('test2')]
+        args = ["test", "test2"]
 
         result = parse_args(args, self.separator)
 
         assert result == ['test', 'test2']
 
     def test_path(self):
-        args = [BasePath(u('test'))]
+        args = [BasePath("test")]
 
         result = parse_args(args, self.separator)
 

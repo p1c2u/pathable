@@ -1,8 +1,6 @@
 """Pathable paths module"""
 from contextlib import contextmanager
 
-from six import text_type
-
 from pathable.accessors import LookupAccessor
 from pathable.parsers import parse_args
 
@@ -39,7 +37,7 @@ class BasePath(object):
             return self._cparts_cached
 
     def _get_cparts(self):
-        return [text_type(p) for p in self.parts]
+        return [str(p) for p in self.parts]
 
     def _make_child(self, args):
         parts = parse_args(args, self.separator)

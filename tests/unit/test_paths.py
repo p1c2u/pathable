@@ -2,7 +2,6 @@ from __future__ import division
 from types import GeneratorType
 
 import pytest
-from six import u, b, iteritems
 
 from pathable.paths import SEPARATOR, BasePath, LookupPath
 
@@ -16,37 +15,37 @@ class TestBasePathInit(object):
         assert p.separator == SEPARATOR
 
     def test_part_text(self):
-        part = u('part')
+        part = "part"
         p = BasePath(part)
 
         assert p.parts == [part, ]
         assert p.separator == SEPARATOR
 
     def test_part_binary(self):
-        part = b('part')
+        part = b"part"
         p = BasePath(part)
 
-        assert p.parts == [u('part'), ]
+        assert p.parts == ["part", ]
         assert p.separator == SEPARATOR
 
     def test_part_binary_many(self):
-        part1 = b('part1')
-        part2 = b('part2')
+        part1 = b"part1"
+        part2 = b"part2"
         p = BasePath(part1, part2)
 
-        assert p.parts == [u('part1'), u('part2')]
+        assert p.parts == ["part1", "part2"]
         assert p.separator == SEPARATOR
 
     def test_part_text_many(self):
-        part1 = u('part1')
-        part2 = u('part2')
+        part1 = "part1"
+        part2 = "part2"
         p = BasePath(part1, part2)
 
         assert p.parts == [part1, part2]
         assert p.separator == SEPARATOR
 
     def test_part_path(self):
-        part = u('part')
+        part = "part"
         p1 = BasePath(part)
         p = BasePath(p1)
 
@@ -54,8 +53,8 @@ class TestBasePathInit(object):
         assert p.separator == SEPARATOR
 
     def test_part_path_many(self):
-        part1 = u('part1')
-        part2 = u('part2')
+        part1 = "part1"
+        part2 = "part2"
         p1 = BasePath(part1)
         p2 = BasePath(part2)
         p = BasePath(p1, p2)
@@ -81,14 +80,14 @@ class TestBasePathFromParts(object):
         assert p.separator == SEPARATOR
 
     def test_parts(self):
-        parts = [u('part1')]
+        parts = ["part1"]
         p = BasePath._from_parts(parts)
 
         assert p.parts == parts
         assert p.separator == SEPARATOR
 
     def test_parts_unparsed(self):
-        parts = [u('part1'), u('part2')]
+        parts = ["part1", "part2"]
         part = SEPARATOR.join(parts)
         p = BasePath._from_parts([part])
 
@@ -96,7 +95,7 @@ class TestBasePathFromParts(object):
         assert p.separator == SEPARATOR
 
     def test_parts_many(self):
-        parts = [u('part1'), u('part2')]
+        parts = ["part1", "part2"]
         p = BasePath._from_parts(parts)
 
         assert p.parts == parts
@@ -156,7 +155,7 @@ class TestBasePathFromParsedParts(object):
 class TestBasePathTruediv(object):
 
     def test_default_empty(self):
-        p = BasePath() / u('')
+        p = BasePath() / ""
 
         assert p.parts == []
         assert p.separator == SEPARATOR
@@ -165,47 +164,47 @@ class TestBasePathTruediv(object):
         'part1,part2,parts,separator',
         (
             [
-                u(''), u(''),
+                "", "",
                 [], SEPARATOR,
             ],
             [
-                u(''), u('part1'),
+                "", "part1",
                 ['part1'], SEPARATOR,
             ],
             [
-                u('part1'), u(''),
+                "part1", "",
                 ['part1'], SEPARATOR,
             ],
             [
-                u('part1'), u('part2'),
+                "part1", "part2",
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                b(''), u(''),
+                b"", "",
                 [], SEPARATOR,
             ],
             [
-                b(''), u('part1'),
+                b"", "part1",
                 ['part1'], SEPARATOR,
             ],
             [
-                b('part1'), u(''),
+                b"part1", "",
                 ['part1'], SEPARATOR,
             ],
             [
-                b('part1'), u('part2'),
+                b"part1", "part2",
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                u('part1'), BasePath(u('part2')),
+                "part1", BasePath("part2"),
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                BasePath(u('part1')), u('part2'),
+                BasePath("part1"), "part2",
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                BasePath(u('part1')), BasePath(u('part2')),
+                BasePath("part1"), BasePath("part2"),
                 ['part1', 'part2'], SEPARATOR,
             ],
         )
@@ -217,10 +216,10 @@ class TestBasePathTruediv(object):
         assert p.separator == separator
 
     def test_combined(self):
-        part11 = u('part11')
-        part12 = u('part12')
-        part21 = u('part21')
-        part22 = u('part22')
+        part11 = "part11"
+        part12 = "part12"
+        part21 = "part21"
+        part22 = "part22"
         part1 = SEPARATOR.join([part11, part12])
         part2 = SEPARATOR.join([part21, part22])
         p = BasePath(part1) / part2
@@ -229,10 +228,10 @@ class TestBasePathTruediv(object):
         assert p.separator == SEPARATOR
 
     def test_combined_different_separators(self):
-        part11 = u('part11')
-        part12 = u('part12')
-        part21 = u('part21')
-        part22 = u('part22')
+        part11 = "part11"
+        part12 = "part12"
+        part21 = "part21"
+        part22 = "part22"
         separator1 = '.'
         part1 = SEPARATOR.join([part11, part12])
         part2 = SEPARATOR.join([part21, part22])
@@ -246,7 +245,7 @@ class TestBasePathTruediv(object):
 class TestBasePathRtruediv(object):
 
     def test_default_empty(self):
-        p = u('') / BasePath()
+        p = "" / BasePath()
 
         assert p.parts == []
         assert p.separator == SEPARATOR
@@ -255,47 +254,47 @@ class TestBasePathRtruediv(object):
         'part1,part2,parts,separator',
         (
             [
-                u(''), u(''),
+                "", "",
                 [], SEPARATOR,
             ],
             [
-                u(''), u('part1'),
+                "", "part1",
                 ['part1'], SEPARATOR,
             ],
             [
-                u('part1'), u(''),
+                "part1", "",
                 ['part1'], SEPARATOR,
             ],
             [
-                u('part1'), u('part2'),
+                "part1", "part2",
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                b(''), u(''),
+                b"", "",
                 [], SEPARATOR,
             ],
             [
-                b(''), u('part1'),
+                b"", "part1",
                 ['part1'], SEPARATOR,
             ],
             [
-                b('part1'), u(''),
+                b"part1", "",
                 ['part1'], SEPARATOR,
             ],
             [
-                b('part1'), u('part2'),
+                b"part1", "part2",
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                u('part1'), BasePath(u('part2')),
+                "part1", BasePath("part2"),
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                BasePath(u('part1')), u('part2'),
+                BasePath("part1"), "part2",
                 ['part1', 'part2'], SEPARATOR,
             ],
             [
-                BasePath(u('part1')), BasePath(u('part2')),
+                BasePath("part1"), BasePath("part2"),
                 ['part1', 'part2'], SEPARATOR,
             ],
         )
@@ -307,10 +306,10 @@ class TestBasePathRtruediv(object):
         assert p.separator == separator
 
     def test_combined(self):
-        part11 = u('part11')
-        part12 = u('part12')
-        part21 = u('part21')
-        part22 = u('part22')
+        part11 = "part11"
+        part12 = "part12"
+        part21 = "part21"
+        part22 = "part22"
         part1 = SEPARATOR.join([part11, part12])
         part2 = SEPARATOR.join([part21, part22])
         p = part1 / BasePath(part2)
@@ -325,25 +324,25 @@ class TestBasePathEq(object):
         'part1,part2,expected',
         (
             [
-                u(''), u(''), True
+                "", "", True
             ],
             [
-                u(''), u('part'), False
+                "", "part", False
             ],
             [
-                u('part'), u(''), False
+                "part", "", False
             ],
             [
-                u('part'), u('part'), True
+                "part", "part", True
             ],
             [
-                u('part'), BasePath(u('part')), True
+                "part", BasePath("part"), True
             ],
             [
-                BasePath(u('part')), u('part'), True
+                BasePath("part"), "part", True
             ],
             [
-                BasePath(u('part')), BasePath(u('part')), True
+                BasePath("part"), BasePath("part"), True
             ],
         )
     )
@@ -364,7 +363,7 @@ class TestLookupPathPathGetItem(object):
                 }
             }
         }
-        p = LookupPath(resource, u('test1/test2'))
+        p = LookupPath(resource, "test1/test2")
 
         result = p['test3']
 
@@ -379,7 +378,7 @@ class TestLookupPathPathGetItem(object):
                 }
             }
         }
-        p = LookupPath(resource, u('test1/test2'))
+        p = LookupPath(resource, "test1/test2")
 
         with pytest.raises(KeyError):
             p['test4']
@@ -396,7 +395,7 @@ class TestLookupPathPathContains(object):
                 }
             }
         }
-        p = LookupPath(resource, u('test1/test2'))
+        p = LookupPath(resource, "test1/test2")
 
         result = 'test3' in p
 
@@ -411,20 +410,20 @@ class TestLookupPathPathContains(object):
                 }
             }
         }
-        p = LookupPath(resource, u('test1/test2'))
+        p = LookupPath(resource, "test1/test2")
 
         result = 'test4' in p
 
         assert result is False
 
 
-class TestLookupPathPathIteritems(object):
+class TestLookupPathPathItems(object):
 
     def test_empty(self):
         resource = {}
         p = LookupPath(resource)
 
-        result = iteritems(p)
+        result = p.items()
 
         assert type(result) is GeneratorType
         assert dict(result) == {}
@@ -436,7 +435,7 @@ class TestLookupPathPathIteritems(object):
         }
         p = LookupPath(resource)
 
-        result = iteritems(p)
+        result = p.items()
 
         assert type(result) is GeneratorType
         assert dict(result) == {
