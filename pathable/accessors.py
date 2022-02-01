@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 
 
-class LookupAccessor(object):
+class LookupAccessor:
     """Accessor for object that supports __getitem__ lookups"""
 
     def __init__(self, lookup):

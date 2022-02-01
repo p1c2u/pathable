@@ -3,11 +3,11 @@
 
 def fsdecode(part):
     if isinstance(part, bytes):
-        return part.decode('ascii')
+        return part.decode("ascii")
     return part
 
 
-def parse_parts(parts, sep='/'):
+def parse_parts(parts, sep="/"):
     parsed = []
     it = reversed(parts)
     for part in it:
@@ -17,19 +17,19 @@ def parse_parts(parts, sep='/'):
             continue
         if sep in part:
             for x in reversed(part.split(sep)):
-                if x and x != '.':
+                if x and x != ".":
                     parsed.append(x)
         else:
-            if part and part != '.':
+            if part and part != ".":
                 parsed.append(part)
     parsed.reverse()
     return parsed
 
 
-def parse_args(args, sep='/'):
+def parse_args(args, sep="/"):
     parts = []
     for a in args:
-        if hasattr(a, 'parts'):
+        if hasattr(a, "parts"):
             parts += a.parts
         else:
             a = fsdecode(a)
@@ -40,6 +40,6 @@ def parse_args(args, sep='/'):
             else:
                 raise TypeError(
                     "argument should be a text object or a Path "
-                    "object returning text, binary not %r"
-                    % type(a))
+                    "object returning text, binary not %r" % type(a)
+                )
     return parse_parts(parts, sep)
