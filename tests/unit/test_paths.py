@@ -4,7 +4,7 @@ from types import GeneratorType
 import pytest
 from six import u, b, iteritems
 
-from pathable.paths import SEPARATOR, BasePath, DictOrListPath
+from pathable.paths import SEPARATOR, BasePath, LookupPath
 
 
 class TestBasePathInit(object):
@@ -353,7 +353,7 @@ class TestBasePathEq(object):
         assert result is expected
 
 
-class TestDictOrListPathPathGetItem(object):
+class TestLookupPathPathGetItem(object):
 
     def test_valid(self):
         value = 'testvalue'
@@ -364,7 +364,7 @@ class TestDictOrListPathPathGetItem(object):
                 }
             }
         }
-        p = DictOrListPath(resource, u('test1/test2'))
+        p = LookupPath(resource, u('test1/test2'))
 
         result = p['test3']
 
@@ -379,13 +379,13 @@ class TestDictOrListPathPathGetItem(object):
                 }
             }
         }
-        p = DictOrListPath(resource, u('test1/test2'))
+        p = LookupPath(resource, u('test1/test2'))
 
         with pytest.raises(KeyError):
             p['test4']
 
 
-class TestDictOrListPathPathContains(object):
+class TestLookupPathPathContains(object):
 
     def test_valid(self):
         value = 'testvalue'
@@ -396,7 +396,7 @@ class TestDictOrListPathPathContains(object):
                 }
             }
         }
-        p = DictOrListPath(resource, u('test1/test2'))
+        p = LookupPath(resource, u('test1/test2'))
 
         result = 'test3' in p
 
@@ -411,18 +411,18 @@ class TestDictOrListPathPathContains(object):
                 }
             }
         }
-        p = DictOrListPath(resource, u('test1/test2'))
+        p = LookupPath(resource, u('test1/test2'))
 
         result = 'test4' in p
 
         assert result is False
 
 
-class TestDictOrListPathPathIteritems(object):
+class TestLookupPathPathIteritems(object):
 
     def test_empty(self):
         resource = {}
-        p = DictOrListPath(resource)
+        p = LookupPath(resource)
 
         result = iteritems(p)
 
@@ -434,7 +434,7 @@ class TestDictOrListPathPathIteritems(object):
             'test1': 1,
             'test2': 2,
         }
-        p = DictOrListPath(resource)
+        p = LookupPath(resource)
 
         result = iteritems(p)
 

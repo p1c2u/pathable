@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Pathable module"""
 from pathable.paths import (
-    BasePath, AccessorPath, DictOrListPath,
-    DictOrListPath as DictPath,
-    DictOrListPath as ListPath,
+    BasePath, AccessorPath, LookupPath,
+    LookupPath as DictPath,
+    LookupPath as ListPath,
 )
 
 __author__ = 'Artur Maciag'
@@ -13,6 +13,6 @@ __url__ = 'https://github.com/p1c2u/pathable'
 __license__ = 'Apache License, Version 2.0'
 
 __all__ = [
-    'BasePath', 'AccessorPath', 'DictOrListPath',
+    'BasePath', 'AccessorPath', 'LookupPath',
     'DictPath', 'ListPath',
 ]
