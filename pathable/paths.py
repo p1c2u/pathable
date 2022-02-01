@@ -4,14 +4,14 @@ from contextlib import contextmanager
 from pathable.accessors import LookupAccessor
 from pathable.parsers import parse_args
 
-SEPARATOR = '/'
+SEPARATOR = "/"
 
 
-class BasePath(object):
+class BasePath:
     """Base path"""
 
     def __init__(self, *args, **kwargs):
-        separator = kwargs.pop('separator', SEPARATOR)
+        separator = kwargs.pop("separator", SEPARATOR)
         self.parts = parse_args(args)
         self.separator = separator
 
@@ -48,15 +48,14 @@ class BasePath(object):
         return self.separator.join(self._cparts)
 
     def __repr__(self):
-        return "{}({!r})".format(
-            self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__}({str(self)!r})"
 
     def __hash__(self):
         return hash(tuple(self._cparts))
 
     def __truediv__(self, key):
         try:
-            return self._make_child((key, ))
+            return self._make_child((key,))
         except TypeError:
             return NotImplemented
 
@@ -96,9 +95,8 @@ class AccessorPath(BasePath):
     """Path for object that can be read by accessor"""
 
     def __init__(self, accessor, *args, **kwargs):
-        separator = kwargs.pop('separator', SEPARATOR)
-        super(AccessorPath, self).__init__(
-            *args, separator=separator)
+        separator = kwargs.pop("separator", SEPARATOR)
+        super().__init__(*args, separator=separator)
         self.accessor = accessor
 
     @classmethod
@@ -168,14 +166,14 @@ class AccessorPath(BasePath):
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
         return self._from_parsed_parts(
-            self.accessor, parts_joined, self.separator)
+            self.accessor, parts_joined, self.separator
+        )
 
     def _make_child_relpath(self, part):
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
         parts = self.parts + [part]
-        return self._from_parsed_parts(
-            self.accessor, parts, self.separator)
+        return self._from_parsed_parts(self.accessor, parts, self.separator)
 
 
 class LookupPath(AccessorPath):
@@ -183,5 +181,4 @@ class LookupPath(AccessorPath):
 
     def __init__(self, lookup, *args, **kwargs):
         accessor = LookupAccessor(lookup)
-        return super(LookupPath, self).__init__(
-            accessor, *args, **kwargs)
+        return super().__init__(accessor, *args, **kwargs)

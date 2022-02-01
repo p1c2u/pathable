@@ -1,13 +1,13 @@
-from __future__ import division
 from types import GeneratorType
 
 import pytest
 
-from pathable.paths import SEPARATOR, BasePath, LookupPath
+from pathable.paths import SEPARATOR
+from pathable.paths import BasePath
+from pathable.paths import LookupPath
 
 
-class TestBasePathInit(object):
-
+class TestBasePathInit:
     def test_default(self):
         p = BasePath()
 
@@ -18,14 +18,18 @@ class TestBasePathInit(object):
         part = "part"
         p = BasePath(part)
 
-        assert p.parts == [part, ]
+        assert p.parts == [
+            part,
+        ]
         assert p.separator == SEPARATOR
 
     def test_part_binary(self):
         part = b"part"
         p = BasePath(part)
 
-        assert p.parts == ["part", ]
+        assert p.parts == [
+            "part",
+        ]
         assert p.separator == SEPARATOR
 
     def test_part_binary_many(self):
@@ -49,7 +53,9 @@ class TestBasePathInit(object):
         p1 = BasePath(part)
         p = BasePath(p1)
 
-        assert p.parts == [part, ]
+        assert p.parts == [
+            part,
+        ]
         assert p.separator == SEPARATOR
 
     def test_part_path_many(self):
@@ -63,15 +69,14 @@ class TestBasePathInit(object):
         assert p.separator == SEPARATOR
 
     def test_separator(self):
-        separator = '.'
+        separator = "."
         p = BasePath(separator=separator)
 
         assert p.parts == []
         assert p.separator == separator
 
 
-class TestBasePathFromParts(object):
-
+class TestBasePathFromParts:
     def test_default(self):
         parts = []
         p = BasePath._from_parts(parts)
@@ -103,16 +108,14 @@ class TestBasePathFromParts(object):
 
     def test_separator(self):
         parts = []
-        separator = '.'
-        p = BasePath._from_parts(
-            parts, separator=separator)
+        separator = "."
+        p = BasePath._from_parts(parts, separator=separator)
 
         assert p.parts == parts
         assert p.separator == separator
 
 
-class TestBasePathFromParsedParts(object):
-
+class TestBasePathFromParsedParts:
     def test_default(self):
         parts = []
         p = BasePath._from_parsed_parts(parts)
@@ -121,14 +124,14 @@ class TestBasePathFromParsedParts(object):
         assert p.separator == SEPARATOR
 
     def test_parts(self):
-        parts = ['part1']
+        parts = ["part1"]
         p = BasePath._from_parsed_parts(parts)
 
         assert p.parts == parts
         assert p.separator == SEPARATOR
 
     def test_parts_unparsed(self):
-        part = SEPARATOR.join(['part1', 'part2'])
+        part = SEPARATOR.join(["part1", "part2"])
         parts = [part]
         p = BasePath._from_parsed_parts(parts)
 
@@ -136,7 +139,7 @@ class TestBasePathFromParsedParts(object):
         assert p.separator == SEPARATOR
 
     def test_parts_many(self):
-        parts = ['part1', 'part2']
+        parts = ["part1", "part2"]
         p = BasePath._from_parsed_parts(parts)
 
         assert p.parts == parts
@@ -144,16 +147,14 @@ class TestBasePathFromParsedParts(object):
 
     def test_separator(self):
         parts = []
-        separator = '.'
-        p = BasePath._from_parsed_parts(
-            parts, separator=separator)
+        separator = "."
+        p = BasePath._from_parsed_parts(parts, separator=separator)
 
         assert p.parts == parts
         assert p.separator == separator
 
 
-class TestBasePathTruediv(object):
-
+class TestBasePathTruediv:
     def test_default_empty(self):
         p = BasePath() / ""
 
@@ -161,53 +162,75 @@ class TestBasePathTruediv(object):
         assert p.separator == SEPARATOR
 
     @pytest.mark.parametrize(
-        'part1,part2,parts,separator',
+        "part1,part2,parts,separator",
         (
             [
-                "", "",
-                [], SEPARATOR,
+                "",
+                "",
+                [],
+                SEPARATOR,
             ],
             [
-                "", "part1",
-                ['part1'], SEPARATOR,
+                "",
+                "part1",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                "part1", "",
-                ['part1'], SEPARATOR,
+                "part1",
+                "",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                "part1", "part2",
-                ['part1', 'part2'], SEPARATOR,
+                "part1",
+                "part2",
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                b"", "",
-                [], SEPARATOR,
+                b"",
+                "",
+                [],
+                SEPARATOR,
             ],
             [
-                b"", "part1",
-                ['part1'], SEPARATOR,
+                b"",
+                "part1",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                b"part1", "",
-                ['part1'], SEPARATOR,
+                b"part1",
+                "",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                b"part1", "part2",
-                ['part1', 'part2'], SEPARATOR,
+                b"part1",
+                "part2",
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                "part1", BasePath("part2"),
-                ['part1', 'part2'], SEPARATOR,
+                "part1",
+                BasePath("part2"),
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                BasePath("part1"), "part2",
-                ['part1', 'part2'], SEPARATOR,
+                BasePath("part1"),
+                "part2",
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                BasePath("part1"), BasePath("part2"),
-                ['part1', 'part2'], SEPARATOR,
+                BasePath("part1"),
+                BasePath("part2"),
+                ["part1", "part2"],
+                SEPARATOR,
             ],
-        )
+        ),
     )
     def test_parts(self, part1, part2, parts, separator):
         p = BasePath(part1) / part2
@@ -232,7 +255,7 @@ class TestBasePathTruediv(object):
         part12 = "part12"
         part21 = "part21"
         part22 = "part22"
-        separator1 = '.'
+        separator1 = "."
         part1 = SEPARATOR.join([part11, part12])
         part2 = SEPARATOR.join([part21, part22])
         p1 = BasePath(part2)
@@ -242,8 +265,7 @@ class TestBasePathTruediv(object):
         assert p.separator == separator1
 
 
-class TestBasePathRtruediv(object):
-
+class TestBasePathRtruediv:
     def test_default_empty(self):
         p = "" / BasePath()
 
@@ -251,53 +273,75 @@ class TestBasePathRtruediv(object):
         assert p.separator == SEPARATOR
 
     @pytest.mark.parametrize(
-        'part1,part2,parts,separator',
+        "part1,part2,parts,separator",
         (
             [
-                "", "",
-                [], SEPARATOR,
+                "",
+                "",
+                [],
+                SEPARATOR,
             ],
             [
-                "", "part1",
-                ['part1'], SEPARATOR,
+                "",
+                "part1",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                "part1", "",
-                ['part1'], SEPARATOR,
+                "part1",
+                "",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                "part1", "part2",
-                ['part1', 'part2'], SEPARATOR,
+                "part1",
+                "part2",
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                b"", "",
-                [], SEPARATOR,
+                b"",
+                "",
+                [],
+                SEPARATOR,
             ],
             [
-                b"", "part1",
-                ['part1'], SEPARATOR,
+                b"",
+                "part1",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                b"part1", "",
-                ['part1'], SEPARATOR,
+                b"part1",
+                "",
+                ["part1"],
+                SEPARATOR,
             ],
             [
-                b"part1", "part2",
-                ['part1', 'part2'], SEPARATOR,
+                b"part1",
+                "part2",
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                "part1", BasePath("part2"),
-                ['part1', 'part2'], SEPARATOR,
+                "part1",
+                BasePath("part2"),
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                BasePath("part1"), "part2",
-                ['part1', 'part2'], SEPARATOR,
+                BasePath("part1"),
+                "part2",
+                ["part1", "part2"],
+                SEPARATOR,
             ],
             [
-                BasePath("part1"), BasePath("part2"),
-                ['part1', 'part2'], SEPARATOR,
+                BasePath("part1"),
+                BasePath("part2"),
+                ["part1", "part2"],
+                SEPARATOR,
             ],
-        )
+        ),
     )
     def test_parts(self, part1, part2, parts, separator):
         p = part1 / BasePath(part2)
@@ -318,33 +362,18 @@ class TestBasePathRtruediv(object):
         assert p.separator == SEPARATOR
 
 
-class TestBasePathEq(object):
-
+class TestBasePathEq:
     @pytest.mark.parametrize(
-        'part1,part2,expected',
+        "part1,part2,expected",
         (
-            [
-                "", "", True
-            ],
-            [
-                "", "part", False
-            ],
-            [
-                "part", "", False
-            ],
-            [
-                "part", "part", True
-            ],
-            [
-                "part", BasePath("part"), True
-            ],
-            [
-                BasePath("part"), "part", True
-            ],
-            [
-                BasePath("part"), BasePath("part"), True
-            ],
-        )
+            ["", "", True],
+            ["", "part", False],
+            ["part", "", False],
+            ["part", "part", True],
+            ["part", BasePath("part"), True],
+            [BasePath("part"), "part", True],
+            [BasePath("part"), BasePath("part"), True],
+        ),
     )
     def test_parts(self, part1, part2, expected):
         result = BasePath(part1) == BasePath(part2)
@@ -352,73 +381,46 @@ class TestBasePathEq(object):
         assert result is expected
 
 
-class TestLookupPathPathGetItem(object):
-
+class TestLookupPathPathGetItem:
     def test_valid(self):
-        value = 'testvalue'
-        resource = {
-            'test1': {
-                'test2': {
-                    'test3': value
-                }
-            }
-        }
+        value = "testvalue"
+        resource = {"test1": {"test2": {"test3": value}}}
         p = LookupPath(resource, "test1/test2")
 
-        result = p['test3']
+        result = p["test3"]
 
         assert result == value
 
     def test_invalid(self):
-        value = 'testvalue'
-        resource = {
-            'test1': {
-                'test2': {
-                    'test3': value
-                }
-            }
-        }
+        value = "testvalue"
+        resource = {"test1": {"test2": {"test3": value}}}
         p = LookupPath(resource, "test1/test2")
 
         with pytest.raises(KeyError):
-            p['test4']
+            p["test4"]
 
 
-class TestLookupPathPathContains(object):
-
+class TestLookupPathPathContains:
     def test_valid(self):
-        value = 'testvalue'
-        resource = {
-            'test1': {
-                'test2': {
-                    'test3': value
-                }
-            }
-        }
+        value = "testvalue"
+        resource = {"test1": {"test2": {"test3": value}}}
         p = LookupPath(resource, "test1/test2")
 
-        result = 'test3' in p
+        result = "test3" in p
 
         assert result is True
 
     def test_invalid(self):
-        value = 'testvalue'
-        resource = {
-            'test1': {
-                'test2': {
-                    'test3': value
-                }
-            }
-        }
+        value = "testvalue"
+        resource = {"test1": {"test2": {"test3": value}}}
         p = LookupPath(resource, "test1/test2")
 
-        result = 'test4' in p
+        result = "test4" in p
 
         assert result is False
 
 
-class TestLookupPathPathItems(object):
-
+class TestLookupPathPathItems:
     def test_empty(self):
         resource = {}
         p = LookupPath(resource)
@@ -430,8 +432,8 @@ class TestLookupPathPathItems(object):
 
     def test_keys(self):
         resource = {
-            'test1': 1,
-            'test2': 2,
+            "test1": 1,
+            "test2": 2,
         }
         p = LookupPath(resource)
 
@@ -439,6 +441,6 @@ class TestLookupPathPathItems(object):
 
         assert type(result) is GeneratorType
         assert dict(result) == {
-            'test1': p / 'test1',
-            'test2': p / 'test2',
+            "test1": p / "test1",
+            "test2": p / "test2",
         }
