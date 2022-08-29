@@ -6,8 +6,10 @@ from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import overload
 from typing import Tuple
 
+from pathable.accessors import BaseAccessor
 from pathable.accessors import LookupAccessor
 from pathable.dataclasses import BasePathData
 from pathable.parsers import SEPARATOR
@@ -25,13 +27,13 @@ class BasePath(BasePathData):
         self._cparts_cached: Optional[List[str]] = None
 
     @classmethod
-    def __from_parts(cls, args: List[Any], separator: str = SEPARATOR) -> "BasePath":
+    def _from_parts(cls, args: List[Any], separator: str = SEPARATOR) -> "BasePath":
         self = cls(separator=separator)
         self.parts = parse_args(args)
         return self
 
     @classmethod
-    def __from_parsed_parts(
+    def _from_parsed_parts(
         cls, parts: List[Hashable], separator: str = SEPARATOR
     ) -> "BasePath":
         self = cls(separator=separator)
@@ -51,13 +53,13 @@ class BasePath(BasePathData):
     def _make_child(self, args: List[Any]) -> "BasePath":
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
-        return self.__from_parsed_parts(parts_joined, self.separator)
+        return self._from_parsed_parts(parts_joined, self.separator)
 
     def _make_child_relpath(self, part: Hashable) -> "BasePath":
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
         parts = self.parts + [part]
-        return self.__from_parsed_parts(parts, self.separator)
+        return self._from_parsed_parts(parts, self.separator)
 
     def __str__(self) -> str:
         return self.separator.join(self._cparts)
@@ -80,7 +82,7 @@ class BasePath(BasePathData):
 
     def __rtruediv__(self, key: Hashable) -> "BasePath":
         try:
-            return self.__from_parts([key] + self.parts)
+            return self._from_parts([key] + self.parts)
         except TypeError:
             return NotImplemented
 
@@ -113,7 +115,7 @@ class BasePath(BasePathData):
 class AccessorPath(BasePath):
     """Path for object that can be read by accessor."""
 
-    def __init__(self, accessor: LookupAccessor, *args: Any, **kwargs: Any):
+    def __init__(self, accessor: BaseAccessor, *args: Any, **kwargs: Any):
         separator = kwargs.pop("separator", SEPARATOR)
         super().__init__(*args, separator=separator)
         self.accessor = accessor
@@ -121,9 +123,9 @@ class AccessorPath(BasePath):
         self._content_cached: Optional[Any] = None
 
     @classmethod
-    def __from_parsed_parts(
+    def _from_parsed_parts( # type: ignore
         cls,
-        accessor: LookupAccessor,
+        accessor: BaseAccessor,
         parts: List[Hashable],
         separator: str = SEPARATOR,
     ) -> "AccessorPath":
@@ -198,7 +200,7 @@ class AccessorPath(BasePath):
     def _make_child(self, args: List[Any]) -> "AccessorPath":
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
-        return self.__from_parsed_parts(
+        return self._from_parsed_parts(
             self.accessor, parts_joined, self.separator
         )
 
@@ -206,14 +208,15 @@ class AccessorPath(BasePath):
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
         parts = self.parts + [part]
-        return self.__from_parsed_parts(self.accessor, parts, self.separator)
+        return self._from_parsed_parts(self.accessor, parts, self.separator)
 
 
 class LookupPath(AccessorPath):
     """Path for object that supports __getitem__ lookups."""
 
-    def __init__(
-        self, lookup: Mapping[Hashable, Any], *args: Any, **kwargs: Any
-    ):
+    @classmethod
+    def _from_lookup(
+        cls, lookup: Mapping[Hashable, Any], *args: Any, **kwargs: Any
+    ) -> "LookupPath":
         accessor = LookupAccessor(lookup)
-        return super().__init__(accessor, *args, **kwargs)
+        return cls(accessor, *args, **kwargs)
