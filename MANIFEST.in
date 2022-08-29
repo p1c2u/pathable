@@ -1,4 +1,3 @@
 include LICENSE
 include README.rst
-include requirements.txt
-include requirements_dev.txt
+include pathable/py.typed
