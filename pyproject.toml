@@ -9,6 +9,30 @@ source =["pathable"]
 [tool.coverage.xml]
 output = "reports/coverage.xml"
 
+[tool.mypy]
+files = "pathable"
+strict = true
+
+# files = "pathable"
+# check_untyped_defs = true
+# disallow_subclassing_any = true
+# disallow_untyped_calls = true
+# disallow_untyped_defs = false
+# ignore_missing_imports = false
+# show_column_numbers = true
+# show_none_errors = true
+# strict_optional = true
+# warn_incomplete_stub = true
+# warn_no_return = true
+# warn_redundant_casts = true
+# warn_return_any = true
+# warn_unused_configs = true
+# warn_unused_ignores = true
+# allow_redefinition = true
+# no_implicit_optional = true
+# local_partial_types = true
+# strict_equality = true
+
 [tool.poetry]
 name = "pathable"
 version = "0.4.0"
@@ -45,6 +69,7 @@ pytest-cov = "^3.0.0"
 isort = "^5.0.0"
 black = "^22.0.0"
 flynt = "0.76"
+mypy = "^0.971"
 
 [tool.pytest.ini_options]
 addopts = """
