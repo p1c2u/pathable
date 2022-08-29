@@ -15,6 +15,12 @@ repos:
       - id: pyupgrade
         args: ["--py36-plus"]
 
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v0.971
+  #   hooks:
+  #     - id: mypy
+  #       args: ["pathable"]
+
   - repo: local
     hooks:
       - id: flynt

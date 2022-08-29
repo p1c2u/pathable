@@ -96,7 +96,7 @@ class TestParseArgs:
         assert result == ["test"]
 
     def test_invalid_part(self):
-        args = [2, 3]
+        args = [(2,), (3,)]
 
         with pytest.raises(TypeError):
             parse_args(args, self.separator)
