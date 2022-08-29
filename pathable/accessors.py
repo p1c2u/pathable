@@ -9,7 +9,26 @@ from typing import Mapping
 from typing import Union
 
 
-class LookupAccessor:
+class BaseAccessor:
+    """Base accessor."""
+
+    def stat(self, parts: List[Hashable]) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def keys(self, parts: List[Hashable]) -> Any:
+        raise NotImplementedError
+
+    def len(self, parts: List[Hashable]) -> int:
+        raise NotImplementedError
+
+    @contextmanager
+    def open(
+        self, parts: List[Hashable]
+    ) -> Iterator[Union[Mapping[Hashable, Any], Any]]:
+        raise NotImplementedError
+
+
+class LookupAccessor(BaseAccessor):
     """Accessor for object that supports __getitem__ lookups"""
 
     def __init__(self, lookup: Mapping[Hashable, Any]):

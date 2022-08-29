@@ -566,27 +566,27 @@ class TestBasePathGe:
 class TestLookupPathIter:
     def test_object(self):
         resource = {"test1": {"test2": {"test3": "test"}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = iter(p)
 
         assert type(result) == GeneratorType
         result_list = list(result)
         assert result_list == [
-            LookupPath(resource, "test1/test2/0"),
+            LookupPath._from_lookup(resource, "test1/test2/0"),
         ]
 
     def test_list(self):
         resource = {"test1": {"test2": ["test3", "test4"]}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = iter(p)
 
         assert type(result) == GeneratorType
         result_list = list(result)
         assert result_list == [
-            LookupPath(resource, "test1/test2/0"),
-            LookupPath(resource, "test1/test2/1"),
+            LookupPath._from_lookup(resource, "test1/test2/0"),
+            LookupPath._from_lookup(resource, "test1/test2/1"),
         ]
 
 
@@ -594,7 +594,7 @@ class TestLookupPathGetItem:
     def test_valid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = p["test3"]
 
@@ -603,7 +603,7 @@ class TestLookupPathGetItem:
     def test_invalid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         with pytest.raises(KeyError):
             p["test4"]
@@ -613,7 +613,7 @@ class TestLookupPathGetkey:
     def test_valid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = p.getkey("test3")
 
@@ -622,7 +622,7 @@ class TestLookupPathGetkey:
     def test_invalid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = p.getkey("test4")
 
@@ -633,7 +633,7 @@ class TestLookupPathGet:
     def test_non_existing_key_default_none(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = p.get("")
 
@@ -642,7 +642,7 @@ class TestLookupPathGet:
     def test_non_existing_key_default_defined(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = p.get("", default=value)
 
@@ -654,17 +654,17 @@ class TestLookupPathGet:
             [
                 {"test1": "test2"},
                 "test1",
-                LookupPath({"test1": "test2"}, "test1"),
+                LookupPath._from_lookup({"test1": "test2"}, "test1"),
             ],
             [
                 {"test1": {"test2": "test3"}},
                 "test1",
-                LookupPath({"test1": {"test2": "test3"}}, "test1"),
+                LookupPath._from_lookup({"test1": {"test2": "test3"}}, "test1"),
             ],
         ),
     )
     def test_key_exists(self, resource, key, expected):
-        p = LookupPath(resource)
+        p = LookupPath._from_lookup(resource)
 
         result = p.get(key)
 
@@ -674,7 +674,7 @@ class TestLookupPathGet:
 class TestLookupPathLen:
     def test_empty(self):
         resource = {}
-        p = LookupPath(resource)
+        p = LookupPath._from_lookup(resource)
 
         result = len(p)
 
@@ -682,7 +682,7 @@ class TestLookupPathLen:
 
     def test_value(self):
         resource = {"test1": "test2"}
-        p = LookupPath(resource, "test1")
+        p = LookupPath._from_lookup(resource, "test1")
 
         result = len(p)
 
@@ -690,7 +690,7 @@ class TestLookupPathLen:
 
     def test_single(self):
         resource = {"test1": "test2"}
-        p = LookupPath(resource)
+        p = LookupPath._from_lookup(resource)
 
         result = len(p)
 
@@ -698,7 +698,7 @@ class TestLookupPathLen:
 
     def test_list(self):
         resource = {"test1": [{"test2": "test3"}, {"test4": "test5"}]}
-        p = LookupPath(resource, "test1")
+        p = LookupPath._from_lookup(resource, "test1")
 
         result = len(p)
 
@@ -708,7 +708,7 @@ class TestLookupPathLen:
 class TestLookupPathKeys:
     def test_empty(self):
         resource = {}
-        p = LookupPath(resource)
+        p = LookupPath._from_lookup(resource)
 
         result = p.keys()
 
@@ -716,14 +716,14 @@ class TestLookupPathKeys:
 
     def test_value(self):
         resource = {"test1": "test2"}
-        p = LookupPath(resource, "test1")
+        p = LookupPath._from_lookup(resource, "test1")
 
         with pytest.raises(AttributeError):
             p.keys()
 
     def test_single(self):
         resource = {"test1": "test2"}
-        p = LookupPath(resource)
+        p = LookupPath._from_lookup(resource)
 
         result = p.keys()
 
@@ -731,7 +731,7 @@ class TestLookupPathKeys:
 
     def test_list(self):
         resource = {"test1": [{"test2": "test3"}, {"test4": "test5"}]}
-        p = LookupPath(resource, "test1")
+        p = LookupPath._from_lookup(resource, "test1")
 
         with pytest.raises(AttributeError):
             p.keys()
@@ -741,7 +741,7 @@ class TestLookupPathContains:
     def test_valid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = "test3" in p
 
@@ -750,7 +750,7 @@ class TestLookupPathContains:
     def test_invalid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2")
 
         result = "test4" in p
 
@@ -760,7 +760,7 @@ class TestLookupPathContains:
 class TestLookupPathItems:
     def test_empty(self):
         resource = {}
-        p = LookupPath(resource)
+        p = LookupPath._from_lookup(resource)
 
         result = p.items()
 
@@ -772,7 +772,7 @@ class TestLookupPathItems:
             "test1": 1,
             "test2": 2,
         }
-        p = LookupPath(resource)
+        p = LookupPath._from_lookup(resource)
 
         result = p.items()
 
@@ -792,7 +792,7 @@ class TestLookupPathOpen:
             "test1": 1,
             "test2": value,
         }
-        p = LookupPath(resource, "test2")
+        p = LookupPath._from_lookup(resource, "test2")
 
         result = p.getkey("test3")
         assert result == p.getkey("test3")
