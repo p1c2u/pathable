@@ -659,7 +659,9 @@ class TestLookupPathGet:
             [
                 {"test1": {"test2": "test3"}},
                 "test1",
-                LookupPath._from_lookup({"test1": {"test2": "test3"}}, "test1"),
+                LookupPath._from_lookup(
+                    {"test1": {"test2": "test3"}}, "test1"
+                ),
             ],
         ),
     )
