@@ -6,14 +6,19 @@ from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
-from typing import overload
 from typing import Tuple
+from typing import Type
+from typing import TypeVar
 
 from pathable.accessors import BaseAccessor
 from pathable.accessors import LookupAccessor
 from pathable.dataclasses import BasePathData
 from pathable.parsers import SEPARATOR
 from pathable.parsers import parse_args
+
+TBasePath = TypeVar("TBasePath", bound="BasePath")
+TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath")
+TLookupPath = TypeVar("TLookupPath", bound="LookupPath")
 
 
 class BasePath(BasePathData):
@@ -27,15 +32,17 @@ class BasePath(BasePathData):
         self._cparts_cached: Optional[List[str]] = None
 
     @classmethod
-    def _from_parts(cls, args: List[Any], separator: str = SEPARATOR) -> "BasePath":
+    def _from_parts(
+        cls: Type[TBasePath], args: List[Any], separator: str = SEPARATOR
+    ) -> TBasePath:
         self = cls(separator=separator)
         self.parts = parse_args(args)
         return self
 
     @classmethod
     def _from_parsed_parts(
-        cls, parts: List[Hashable], separator: str = SEPARATOR
-    ) -> "BasePath":
+        cls: Type[TBasePath], parts: List[Hashable], separator: str = SEPARATOR
+    ) -> TBasePath:
         self = cls(separator=separator)
         self.parts = parts
         return self
@@ -50,12 +57,12 @@ class BasePath(BasePathData):
     def _get_cparts(self) -> List[str]:
         return [str(p) for p in self.parts]
 
-    def _make_child(self, args: List[Any]) -> "BasePath":
+    def _make_child(self: TBasePath, args: List[Any]) -> TBasePath:
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
         return self._from_parsed_parts(parts_joined, self.separator)
 
-    def _make_child_relpath(self, part: Hashable) -> "BasePath":
+    def _make_child_relpath(self: TBasePath, part: Hashable) -> TBasePath:
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
         parts = self.parts + [part]
@@ -70,7 +77,7 @@ class BasePath(BasePathData):
     def __hash__(self) -> int:
         return hash(tuple(self._cparts))
 
-    def __truediv__(self, key: Any) -> "BasePath":
+    def __truediv__(self: TBasePath, key: Any) -> TBasePath:
         try:
             return self._make_child(
                 [
@@ -80,7 +87,7 @@ class BasePath(BasePathData):
         except TypeError:
             return NotImplemented
 
-    def __rtruediv__(self, key: Hashable) -> "BasePath":
+    def __rtruediv__(self: TBasePath, key: Hashable) -> TBasePath:
         try:
             return self._from_parts([key] + self.parts)
         except TypeError:
@@ -123,17 +130,32 @@ class AccessorPath(BasePath):
         self._content_cached: Optional[Any] = None
 
     @classmethod
-    def _from_parsed_parts( # type: ignore
-        cls,
+    def _from_parsed_parts(  # type: ignore
+        cls: Type[TAccessorPath],
         accessor: BaseAccessor,
         parts: List[Hashable],
         separator: str = SEPARATOR,
-    ) -> "AccessorPath":
+    ) -> TAccessorPath:
         self = cls(accessor, separator=separator)
         self.parts = parts
         return self
 
-    def __iter__(self) -> Iterator["AccessorPath"]:
+    def _make_child(self: TAccessorPath, args: List[Any]) -> TAccessorPath:
+        parts = parse_args(args, self.separator)
+        parts_joined = self.parts + parts
+        return self._from_parsed_parts(
+            self.accessor, parts_joined, self.separator
+        )
+
+    def _make_child_relpath(
+        self: TAccessorPath, part: Hashable
+    ) -> TAccessorPath:
+        # This is an optimization used for dir walking.  `part` must be
+        # a single part relative to this path.
+        parts = self.parts + [part]
+        return self._from_parsed_parts(self.accessor, parts, self.separator)
+
+    def __iter__(self: TAccessorPath) -> Iterator[TAccessorPath]:
         return self.iter()
 
     def __getitem__(self, key: Hashable) -> Any:
@@ -172,16 +194,16 @@ class AccessorPath(BasePath):
     def _open(self) -> Any:
         return self.accessor.open(self.parts)
 
-    def iter(self) -> Iterator["AccessorPath"]:
+    def iter(self: TAccessorPath) -> Iterator[TAccessorPath]:
         """Iterate over all child paths."""
         for idx in range(self.accessor.len(self.parts)):
             yield self._make_child_relpath(idx)
 
-    def iteritems(self) -> Iterator[Tuple[Any, "AccessorPath"]]:
+    def iteritems(self: TAccessorPath) -> Iterator[Tuple[Any, TAccessorPath]]:
         """Return path's items."""
         return self.items()
 
-    def items(self) -> Iterator[Tuple[Any, "AccessorPath"]]:
+    def items(self: TAccessorPath) -> Iterator[Tuple[Any, TAccessorPath]]:
         """Return path's items."""
         for key in self.accessor.keys(self.parts):
             yield key, self._make_child_relpath(key)
@@ -197,26 +219,16 @@ class AccessorPath(BasePath):
             return self.__truediv__(key)
         return default
 
-    def _make_child(self, args: List[Any]) -> "AccessorPath":
-        parts = parse_args(args, self.separator)
-        parts_joined = self.parts + parts
-        return self._from_parsed_parts(
-            self.accessor, parts_joined, self.separator
-        )
-
-    def _make_child_relpath(self, part: Hashable) -> "AccessorPath":
-        # This is an optimization used for dir walking.  `part` must be
-        # a single part relative to this path.
-        parts = self.parts + [part]
-        return self._from_parsed_parts(self.accessor, parts, self.separator)
-
 
 class LookupPath(AccessorPath):
     """Path for object that supports __getitem__ lookups."""
 
     @classmethod
     def _from_lookup(
-        cls, lookup: Mapping[Hashable, Any], *args: Any, **kwargs: Any
-    ) -> "LookupPath":
+        cls: Type[TLookupPath],
+        lookup: Mapping[Hashable, Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> TLookupPath:
         accessor = LookupAccessor(lookup)
         return cls(accessor, *args, **kwargs)
