@@ -1,4 +1,5 @@
 """Pathable paths module"""
+import warnings
 from contextlib import contextmanager
 from typing import Any
 from typing import Hashable
@@ -209,7 +210,10 @@ class AccessorPath(BasePath):
             yield key, self._make_child_relpath(key)
 
     def content(self) -> Any:
-        """Return content of the path."""
+        warnings.warn(
+            "content parameter is deprecated.",
+            DeprecationWarning,
+        )
         with self.open() as d:
             return d
 
