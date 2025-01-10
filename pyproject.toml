@@ -35,7 +35,7 @@ strict = true
 
 [tool.poetry]
 name = "pathable"
-version = "0.4.3"
+version = "0.4.4"
 description = "Object-oriented paths"
 authors = ["Artur Maciag <maciag.artur@gmail.com>"]
 license = "Apache-2.0"
