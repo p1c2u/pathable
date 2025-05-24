@@ -696,5 +696,5 @@ dev = []
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.8,<4.0"
-content-hash = "ffdd1aa48b2acce79f550715d0eea5507e747ff97dd3c2b6762f76cf546246d4"
+python-versions = ">=3.9,<4.0"
+content-hash = "0009b1a2662039ee7d4f16b703e406786fb3cf32a4a61c3622334abafbe61f3f"
