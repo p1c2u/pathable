@@ -37,7 +37,11 @@ class LookupAccessor(BaseAccessor):
 
     def keys(self, parts: list[Hashable]) -> Any:
         with self.open(parts) as d:
-            return d.keys()
+            if isinstance(d, Mapping):
+                return d.keys()
+            if isinstance(d, list):
+                return list(range(len(d)))
+            raise AttributeError
 
     def len(self, parts: list[Hashable]) -> int:
         with self.open(parts) as d:
