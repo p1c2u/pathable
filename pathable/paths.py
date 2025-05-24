@@ -1,15 +1,13 @@
 """Pathable paths module"""
 import warnings
+from collections.abc import Hashable
+from collections.abc import Iterator
+from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
-from typing import Hashable
-from typing import Iterator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Tuple
 from typing import Type
 from typing import TypeVar
+from typing import Union
 
 from pathable.accessors import BaseAccessor
 from pathable.accessors import LookupAccessor
@@ -26,15 +24,15 @@ class BasePath(BasePathData):
     """Base path."""
 
     def __init__(self, *args: Any, **kwargs: Any):
+        parts = parse_args(list(args))
         separator = kwargs.pop("separator", SEPARATOR)
-        self.parts = parse_args(list(args))
-        self.separator = separator
+        super().__init__(parts, separator=separator)
 
-        self._cparts_cached: Optional[List[str]] = None
+        self._cparts_cached: Union[list[str], None] = None
 
     @classmethod
     def _from_parts(
-        cls: Type[TBasePath], args: List[Any], separator: str = SEPARATOR
+        cls: Type[TBasePath], args: list[Any], separator: str = SEPARATOR
     ) -> TBasePath:
         self = cls(separator=separator)
         self.parts = parse_args(args)
@@ -42,23 +40,23 @@ class BasePath(BasePathData):
 
     @classmethod
     def _from_parsed_parts(
-        cls: Type[TBasePath], parts: List[Hashable], separator: str = SEPARATOR
+        cls: Type[TBasePath], parts: list[Hashable], separator: str = SEPARATOR
     ) -> TBasePath:
         self = cls(separator=separator)
         self.parts = parts
         return self
 
     @property
-    def _cparts(self) -> List[Any]:
+    def _cparts(self) -> list[Any]:
         # Cached casefolded parts, for hashing and comparison
         if self._cparts_cached is None:
             self._cparts_cached = self._get_cparts()
         return self._cparts_cached
 
-    def _get_cparts(self) -> List[str]:
+    def _get_cparts(self) -> list[str]:
         return [str(p) for p in self.parts]
 
-    def _make_child(self: TBasePath, args: List[Any]) -> TBasePath:
+    def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
         return self._from_parsed_parts(parts_joined, self.separator)
@@ -128,20 +126,20 @@ class AccessorPath(BasePath):
         super().__init__(*args, separator=separator)
         self.accessor = accessor
 
-        self._content_cached: Optional[Any] = None
+        self._content_cached: Any = None
 
     @classmethod
     def _from_parsed_parts(  # type: ignore
         cls: Type[TAccessorPath],
         accessor: BaseAccessor,
-        parts: List[Hashable],
+        parts: list[Hashable],
         separator: str = SEPARATOR,
     ) -> TAccessorPath:
         self = cls(accessor, separator=separator)
         self.parts = parts
         return self
 
-    def _make_child(self: TAccessorPath, args: List[Any]) -> TAccessorPath:
+    def _make_child(self: TAccessorPath, args: list[Any]) -> TAccessorPath:
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
         return self._from_parsed_parts(
@@ -200,11 +198,11 @@ class AccessorPath(BasePath):
         for idx in range(self.accessor.len(self.parts)):
             yield self._make_child_relpath(idx)
 
-    def iteritems(self: TAccessorPath) -> Iterator[Tuple[Any, TAccessorPath]]:
+    def iteritems(self: TAccessorPath) -> Iterator[tuple[Any, TAccessorPath]]:
         """Return path's items."""
         return self.items()
 
-    def items(self: TAccessorPath) -> Iterator[Tuple[Any, TAccessorPath]]:
+    def items(self: TAccessorPath) -> Iterator[tuple[Any, TAccessorPath]]:
         """Return path's items."""
         for key in self.accessor.keys(self.parts):
             yield key, self._make_child_relpath(key)
