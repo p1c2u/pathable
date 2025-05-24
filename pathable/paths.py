@@ -159,15 +159,15 @@ class AccessorPath(BasePath):
         )
 
     def __iter__(self: TAccessorPath) -> Iterator[TAccessorPath]:
-        return self.iter()
+        for key in self.accessor.keys(self.parts):
+            yield self._make_child_relpath(key)
 
     def __getitem__(self, key: Hashable) -> Any:
         with self.open() as d:
             return d[key]
 
     def __contains__(self, key: Hashable) -> bool:
-        with self.open() as d:
-            return key in d
+        return key in self.accessor.keys(self.parts)
 
     def __len__(self) -> int:
         return self.accessor.len(self.parts)
@@ -177,33 +177,30 @@ class AccessorPath(BasePath):
 
     def getkey(self, key: Hashable, default: Any = None) -> Any:
         """Return the value for key if key is in the path, else default."""
-        with self.open() as d:
-            try:
-                return d[key]
-            except KeyError:
-                return default
-
-    @contextmanager
-    def open(self) -> Any:
-        """Open the path."""
-        # Cached path content
-        if self._content_cached is None:
-            with self._open() as content:
-                self._content_cached = content
-                yield self._content_cached
-        else:
-            yield self._content_cached
-
-    def _open(self) -> Any:
-        return self.accessor.open(self.parts)
+        warnings.warn(
+            "'getkey' method is deprecated. Use 'key not in path' and 'path.read_value' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if key not in self:
+            raise default
+        path = self / key
+        return path.read_value()
 
     def iter(self: TAccessorPath) -> Iterator[TAccessorPath]:
         """Iterate over all child paths."""
-        for idx in range(self.accessor.len(self.parts)):
-            yield self._make_child_relpath(idx)
+        warnings.warn(
+            "'iter' method is deprecated. Use 'iter(path)' instead.",
+            DeprecationWarning,
+        )
+        return iter(self)
 
     def iteritems(self: TAccessorPath) -> Iterator[tuple[Any, TAccessorPath]]:
         """Return path's items."""
+        warnings.warn(
+            "'iteritems' method is deprecated. Use 'items' instead.",
+            DeprecationWarning,
+        )
         return self.items()
 
     def items(self: TAccessorPath) -> Iterator[tuple[Any, TAccessorPath]]:
@@ -213,7 +210,7 @@ class AccessorPath(BasePath):
 
     def content(self) -> Any:
         warnings.warn(
-            "content parameter is deprecated.",
+            "'content' method is deprecated.",
             DeprecationWarning,
         )
         with self.open() as d:
@@ -221,9 +218,30 @@ class AccessorPath(BasePath):
 
     def get(self, key: Hashable, default: Any = None) -> Any:
         """Return the child path for key if key is in the path, else default."""
+        warnings.warn(
+            "'get' method is deprecated. Use 'key in path' and 'path / key' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if key in self:
-            return self.__truediv__(key)
+            return self / key
         return default
+
+    @contextmanager
+    def open(self) -> Any:
+        """Open the path."""
+        # Cached path content
+        if self._content_cached is None:
+            with self.accessor.open(self.parts) as content:
+                self._content_cached = content
+                yield self._content_cached
+        else:
+            yield self._content_cached
+
+    def read_value(self) -> Any:
+        """Return the path's value."""
+        with self.open() as d:
+            return d
 
 
 class LookupPath(AccessorPath):

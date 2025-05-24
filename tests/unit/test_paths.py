@@ -1,10 +1,44 @@
+from collections.abc import Mapping
+from collections.abc import Hashable
+from collections.abc import Iterator
+from contextlib import contextmanager
+from typing import Any
 from types import GeneratorType
+from typing import Union
 
 import pytest
 
+from pathable.accessors import BaseAccessor
 from pathable.parsers import SEPARATOR
+from pathable.paths import AccessorPath
 from pathable.paths import BasePath
 from pathable.paths import LookupPath
+
+
+class MockAccessor(BaseAccessor):
+    """Mock accessor."""
+
+    def __init__(self, *children_keys: str, content: Any = None, exists: bool = False):
+        self._children_keys = children_keys
+        self._content = content
+        self._exists = exists
+
+    def stat(self, parts: list[Hashable]) -> dict[str, Any]:
+        return {
+            "exists": self._exists,
+        }
+
+    def keys(self, parts: list[Hashable]) -> Any:
+        return self._children_keys
+
+    def len(self, parts: list[Hashable]) -> int:
+        return len(self._children_keys)
+
+    @contextmanager
+    def open(
+        self, parts: list[Hashable]
+    ) -> Iterator[Union[Mapping[Hashable, Any], Any]]:
+        yield self._content
 
 
 class TestBasePathInit:
@@ -563,6 +597,103 @@ class TestBasePathGe:
             BasePath() >= []
 
 
+class TestAccessorPathLen:
+    def test_empty(self):
+        accessor = MockAccessor()
+        p = AccessorPath(accessor)
+
+        result = len(p)
+
+        assert result == 0
+
+    def test_value(self):
+        accessor = MockAccessor("test1", "test2")
+        p = AccessorPath(accessor)
+
+        result = len(p)
+
+        assert result == 2
+
+
+class TestAccessorPathKeys:
+    def test_empty(self):
+        accessor = MockAccessor()
+        p = AccessorPath(accessor)
+
+        result = p.keys()
+
+        assert list(result) == []
+
+    def test_value(self):
+        accessor = MockAccessor("test1", "test2")
+        p = AccessorPath(accessor)
+
+        result = p.keys()
+
+        assert list(result) == ["test1", "test2"]
+
+
+class TestAccessorPathContains:
+    def test_valid(self):
+        accessor = MockAccessor("test1", "test2")
+        p = AccessorPath(accessor)
+        result = "test1" in p
+        assert result is True
+
+    def test_invalid(self):
+        accessor = MockAccessor("test1", "test2")
+        p = AccessorPath(accessor)
+        result = "test3" in p
+        assert result is False
+
+
+class TestAccessorPathItems:
+    def test_empty(self):
+        accessor = MockAccessor()
+        p = AccessorPath(accessor)
+
+        result = p.items()
+
+        assert type(result) is GeneratorType
+        assert dict(result) == {}
+
+    def test_keys(self):
+        accessor = MockAccessor("test1", "test2")
+        p = AccessorPath(accessor)
+
+        result = p.items()
+
+        assert type(result) is GeneratorType
+        assert dict(result) == {
+            "test1": p / "test1",
+            "test2": p / "test2",
+        }
+
+
+class TestAccessorPathIter:
+    def test_empty(self):
+        accessor = MockAccessor()
+        p = AccessorPath(accessor)
+
+        result = iter(p)
+
+        assert type(result) is GeneratorType
+        assert list(result) == []
+
+    def test_value(self):
+        accessor = MockAccessor("test1", "test2")
+        p = AccessorPath(accessor)
+
+        result = iter(p)
+
+        assert type(result) is GeneratorType
+        result_list = list(result)
+        assert result_list == [
+            p / "test1",
+            p / "test2",
+        ]
+
+
 class TestLookupPathIter:
     def test_object(self):
         resource = {"test1": {"test2": {"test3": "test"}}}
@@ -573,7 +704,7 @@ class TestLookupPathIter:
         assert type(result) == GeneratorType
         result_list = list(result)
         assert result_list == [
-            LookupPath._from_lookup(resource, "test1/test2/0"),
+            LookupPath._from_lookup(resource, "test1/test2/test3"),
         ]
 
     def test_list(self):
@@ -609,24 +740,23 @@ class TestLookupPathGetItem:
             p["test4"]
 
 
-class TestLookupPathGetkey:
+class TestLookupPathReadValue:
     def test_valid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath._from_lookup(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2/test3")
 
-        result = p.getkey("test3")
+        result = p.read_value()
 
         assert result == value
 
     def test_invalid(self):
         value = "testvalue"
         resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath._from_lookup(resource, "test1/test2")
+        p = LookupPath._from_lookup(resource, "test1/test2/test4")
 
-        result = p.getkey("test4")
-
-        assert result is None
+        with pytest.raises(KeyError):
+            p.read_value()
 
 
 class TestLookupPathGet:
@@ -723,7 +853,14 @@ class TestLookupPathKeys:
         with pytest.raises(AttributeError):
             p.keys()
 
-    def test_single(self):
+    def test_string(self):
+        resource = "test1"
+        p = LookupPath._from_lookup(resource)
+
+        with pytest.raises(AttributeError):
+            p.keys()
+
+    def test_dict(self):
         resource = {"test1": "test2"}
         p = LookupPath._from_lookup(resource)
 
@@ -735,8 +872,9 @@ class TestLookupPathKeys:
         resource = {"test1": [{"test2": "test3"}, {"test4": "test5"}]}
         p = LookupPath._from_lookup(resource, "test1")
 
-        with pytest.raises(AttributeError):
-            p.keys()
+        result = p.keys()
+
+        assert list(result) == [0, 1]
 
 
 class TestLookupPathContains:
@@ -796,7 +934,7 @@ class TestLookupPathOpen:
         }
         p = LookupPath._from_lookup(resource, "test2")
 
-        result = p.getkey("test3")
-        assert result == p.getkey("test3")
+        result = p.read_value()
+        assert result == p.read_value()
 
         assert p._content_cached == value
