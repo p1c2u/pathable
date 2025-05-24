@@ -1,10 +1,9 @@
+from collections.abc import Hashable
 from dataclasses import dataclass
-from typing import Hashable
-from typing import List
 
 
 @dataclass
 class BasePathData:
 
-    parts: List[Hashable]
+    parts: list[Hashable]
     separator: str

@@ -1,17 +1,15 @@
 """Pathable parsers module"""
+from collections.abc import Hashable
 from typing import Any
-from typing import Hashable
-from typing import List
-from typing import Union
 
 from pathable.types import PartType
 
 SEPARATOR = "/"
 
 
-def parse_parts(parts: List[PartType], sep: str = SEPARATOR) -> List[Hashable]:
+def parse_parts(parts: list[PartType], sep: str = SEPARATOR) -> list[Hashable]:
     """Parse (filter and split) path parts."""
-    parsed: List[Hashable] = []
+    parsed: list[Hashable] = []
     it = reversed(parts)
     for part in it:
         if isinstance(part, int):
@@ -30,9 +28,9 @@ def parse_parts(parts: List[PartType], sep: str = SEPARATOR) -> List[Hashable]:
     return parsed
 
 
-def parse_args(args: List[Any], sep: str = SEPARATOR) -> List[Hashable]:
+def parse_args(args: list[Any], sep: str = SEPARATOR) -> list[Hashable]:
     """Canonicalize path constructor arguments."""
-    parts: List[PartType] = []
+    parts: list[PartType] = []
     for a in args:
         if hasattr(a, "parts"):
             parts += a.parts
