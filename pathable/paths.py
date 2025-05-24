@@ -129,12 +129,14 @@ class AccessorPath(BasePath):
         self._content_cached: Any = None
 
     @classmethod
-    def _from_parsed_parts(  # type: ignore
+    def _from_parsed_parts(
         cls: Type[TAccessorPath],
-        accessor: BaseAccessor,
         parts: list[Hashable],
         separator: str = SEPARATOR,
+        accessor: Union[BaseAccessor, None] = None,
     ) -> TAccessorPath:
+        if accessor is None:
+            raise ValueError("accessor must be provided")
         self = cls(accessor, separator=separator)
         self.parts = parts
         return self
@@ -143,7 +145,7 @@ class AccessorPath(BasePath):
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
         return self._from_parsed_parts(
-            self.accessor, parts_joined, self.separator
+            parts_joined, separator=self.separator, accessor=self.accessor,
         )
 
     def _make_child_relpath(
@@ -152,7 +154,9 @@ class AccessorPath(BasePath):
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
         parts = self.parts + [part]
-        return self._from_parsed_parts(self.accessor, parts, self.separator)
+        return self._from_parsed_parts(
+            parts, separator=self.separator, accessor=self.accessor,
+        )
 
     def __iter__(self: TAccessorPath) -> Iterator[TAccessorPath]:
         return self.iter()
