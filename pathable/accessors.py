@@ -45,6 +45,10 @@ class SubscriptableAccessor(BaseAccessor, Generic[SK, SV]):
     def keys(self, parts: Sequence[Hashable]) -> Sequence[SK]:
         raise NotImplementedError
 
+    def len(self, parts: Sequence[Hashable]) -> int:
+        with self.open(parts) as d:
+            return len(d)
+
     @classmethod
     def _open(cls, content: Subscriptable[SK, SV], parts: Sequence[Hashable]) -> Union[SV, Subscriptable[SK, SV]]:
         result: Union[SV, Subscriptable[SK, SV]] = content
@@ -89,7 +93,7 @@ class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, 
         return cls._open_content_id(id(content), parts)
 
 
-class LookupAccessor(CachedSubscriptableAccessor[Union[str, int], Any]):
+class LookupAccessor(CachedSubscriptableAccessor[Union[str, int], Union[dict[Hashable, Any], list[Any]]]):
 
     def keys(self, parts: Sequence[Hashable]) -> Sequence[Union[str, int]]:
         with self.open(parts) as d:
@@ -98,7 +102,3 @@ class LookupAccessor(CachedSubscriptableAccessor[Union[str, int], Any]):
             if isinstance(d, list):
                 return list(range(len(d)))
             raise AttributeError
-
-    def len(self, parts: Sequence[Hashable]) -> int:
-        with self.open(parts) as d:
-            return len(d)
