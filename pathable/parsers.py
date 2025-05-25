@@ -1,6 +1,7 @@
 """Pathable parsers module"""
 from collections.abc import Hashable
 from typing import Any
+from typing import Sequence
 
 from pathable.types import PartType
 
@@ -28,7 +29,7 @@ def parse_parts(parts: list[PartType], sep: str = SEPARATOR) -> list[Hashable]:
     return parsed
 
 
-def parse_args(args: list[Any], sep: str = SEPARATOR) -> list[Hashable]:
+def parse_args(args: Sequence[Any], sep: str = SEPARATOR) -> tuple[Hashable, ...]:
     """Canonicalize path constructor arguments."""
     parts: list[PartType] = []
     for a in args:
@@ -46,4 +47,4 @@ def parse_args(args: list[Any], sep: str = SEPARATOR) -> list[Hashable]:
                     "argument should be a text object or a Path "
                     "object returning text, binary not %r" % type(a)
                 )
-    return parse_parts(parts, sep)
+    return tuple(parse_parts(parts, sep))

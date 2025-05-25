@@ -58,25 +58,25 @@ class TestBasePathInit:
     def test_default(self):
         p = BasePath()
 
-        assert p.parts == []
+        assert p.parts == ()
         assert p.separator == SEPARATOR
 
     def test_part_text(self):
         part = "part"
         p = BasePath(part)
 
-        assert p.parts == [
+        assert p.parts == (
             part,
-        ]
+        )
         assert p.separator == SEPARATOR
 
     def test_part_binary(self):
         part = b"part"
         p = BasePath(part)
 
-        assert p.parts == [
+        assert p.parts == (
             "part",
-        ]
+        )
         assert p.separator == SEPARATOR
 
     def test_part_binary_many(self):
@@ -84,7 +84,7 @@ class TestBasePathInit:
         part2 = b"part2"
         p = BasePath(part1, part2)
 
-        assert p.parts == ["part1", "part2"]
+        assert p.parts == ("part1", "part2")
         assert p.separator == SEPARATOR
 
     def test_part_text_many(self):
@@ -92,7 +92,7 @@ class TestBasePathInit:
         part2 = "part2"
         p = BasePath(part1, part2)
 
-        assert p.parts == [part1, part2]
+        assert p.parts == (part1, part2)
         assert p.separator == SEPARATOR
 
     def test_part_path(self):
@@ -100,9 +100,9 @@ class TestBasePathInit:
         p1 = BasePath(part)
         p = BasePath(p1)
 
-        assert p.parts == [
+        assert p.parts == (
             part,
-        ]
+        )
         assert p.separator == SEPARATOR
 
     def test_part_path_many(self):
@@ -112,14 +112,14 @@ class TestBasePathInit:
         p2 = BasePath(part2)
         p = BasePath(p1, p2)
 
-        assert p.parts == [part1, part2]
+        assert p.parts == (part1, part2)
         assert p.separator == SEPARATOR
 
     def test_separator(self):
         separator = "."
         p = BasePath(separator=separator)
 
-        assert p.parts == []
+        assert p.parts == ()
         assert p.separator == separator
 
 
@@ -226,14 +226,14 @@ class TestBasePathMakeChild:
         args = []
         p = base_path._make_child(args)
 
-        assert p.parts == args
+        assert p.parts == tuple(args)
         assert p.separator == SEPARATOR
 
     def test_arg(self, base_path):
         args = ["part1"]
         p = base_path._make_child(args)
 
-        assert p.parts == args
+        assert p.parts == tuple(args)
         assert p.separator == SEPARATOR
 
     def test_arg_unparsed(self, base_path):
@@ -242,14 +242,14 @@ class TestBasePathMakeChild:
         args = [arg]
         p = base_path._make_child(args)
 
-        assert p.parts == parts
+        assert p.parts == tuple(parts)
         assert p.separator == SEPARATOR
 
     def test_args_many(self, base_path):
         args = ["part1", "part2"]
         p = base_path._make_child(args)
 
-        assert p.parts == args
+        assert p.parts == tuple(args)
         assert p.separator == SEPARATOR
 
 
@@ -262,7 +262,7 @@ class TestBasePathMakeChildRelPath:
         part = "part1"
         p = base_path._make_child_relpath(part)
 
-        assert p.parts == [part]
+        assert p.parts == (part, )
         assert p.separator == SEPARATOR
 
 
@@ -270,7 +270,7 @@ class TestBasePathTruediv:
     def test_default_empty(self):
         p = BasePath() / ""
 
-        assert p.parts == []
+        assert p.parts == ()
         assert p.separator == SEPARATOR
 
     @pytest.mark.parametrize(
@@ -279,67 +279,67 @@ class TestBasePathTruediv:
             [
                 "",
                 "",
-                [],
+                (),
                 SEPARATOR,
             ],
             [
                 "",
                 "part1",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 "part1",
                 "",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 "part1",
                 "part2",
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 b"",
                 "",
-                [],
+                (),
                 SEPARATOR,
             ],
             [
                 b"",
                 "part1",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 b"part1",
                 "",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 b"part1",
                 "part2",
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 "part1",
                 BasePath("part2"),
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 BasePath("part1"),
                 "part2",
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 BasePath("part1"),
                 BasePath("part2"),
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
         ),
@@ -359,7 +359,7 @@ class TestBasePathTruediv:
         part2 = SEPARATOR.join([part21, part22])
         p = BasePath(part1) / part2
 
-        assert p.parts == [part11, part12, part21, part22]
+        assert p.parts == (part11, part12, part21, part22)
         assert p.separator == SEPARATOR
 
     def test_combined_different_separators(self):
@@ -373,7 +373,7 @@ class TestBasePathTruediv:
         p1 = BasePath(part2)
         p = BasePath(part1, separator=separator1) / p1
 
-        assert p.parts == [part11, part12, part21, part22]
+        assert p.parts == (part11, part12, part21, part22)
         assert p.separator == separator1
 
     def test_type_not_implemented(self):
@@ -385,7 +385,7 @@ class TestBasePathRtruediv:
     def test_default_empty(self):
         p = "" / BasePath()
 
-        assert p.parts == []
+        assert p.parts == ()
         assert p.separator == SEPARATOR
 
     @pytest.mark.parametrize(
@@ -394,67 +394,67 @@ class TestBasePathRtruediv:
             [
                 "",
                 "",
-                [],
+                (),
                 SEPARATOR,
             ],
             [
                 "",
                 "part1",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 "part1",
                 "",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 "part1",
                 "part2",
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 b"",
                 "",
-                [],
+                (),
                 SEPARATOR,
             ],
             [
                 b"",
                 "part1",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 b"part1",
                 "",
-                ["part1"],
+                ("part1", ),
                 SEPARATOR,
             ],
             [
                 b"part1",
                 "part2",
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 "part1",
                 BasePath("part2"),
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 BasePath("part1"),
                 "part2",
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
             [
                 BasePath("part1"),
                 BasePath("part2"),
-                ["part1", "part2"],
+                ("part1", "part2"),
                 SEPARATOR,
             ],
         ),
@@ -474,7 +474,7 @@ class TestBasePathRtruediv:
         part2 = SEPARATOR.join([part21, part22])
         p = part1 / BasePath(part2)
 
-        assert p.parts == [part11, part12, part21, part22]
+        assert p.parts == (part11, part12, part21, part22)
         assert p.separator == SEPARATOR
 
     def test_type_not_implemented(self):
