@@ -230,13 +230,8 @@ class AccessorPath(BasePath):
     @contextmanager
     def open(self) -> Any:
         """Open the path."""
-        # Cached path content
-        if self._content_cached is None:
-            with self.accessor.open(self.parts) as content:
-                self._content_cached = content
-                yield self._content_cached
-        else:
-            yield self._content_cached
+        with self.accessor.open(self.parts) as content:
+            yield content
 
     def read_value(self) -> Any:
         """Return the path's value."""

@@ -41,6 +41,19 @@ class MockAccessor(BaseAccessor):
         yield self._content
 
 
+class MockResource(dict):
+    """Mock resource for testing purposes."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.getitem_counter = 0
+
+    def __getitem__(self, key: Hashable) -> Any:
+        self.getitem_counter += 1
+        return super().__getitem__(key)
+
+
 class TestBasePathInit:
     def test_default(self):
         p = BasePath()
@@ -928,13 +941,13 @@ class TestLookupPathOpen:
         value = {
             "test3": "test4",
         }
-        resource = {
-            "test1": 1,
-            "test2": value,
-        }
+        resource = MockResource(
+            test1=1,
+            test2=value,
+        )
         p = LookupPath._from_lookup(resource, "test2")
 
         result = p.read_value()
+        assert resource.getitem_counter == 1
         assert result == p.read_value()
-
-        assert p._content_cached == value
+        assert resource.getitem_counter == 1
