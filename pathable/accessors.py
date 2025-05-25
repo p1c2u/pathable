@@ -2,71 +2,103 @@
 from collections.abc import Hashable
 from collections.abc import Iterator
 from collections.abc import Mapping
+from collections.abc import Sequence
 from contextlib import contextmanager
 from functools import lru_cache
 from typing import Any
+from typing import cast
+from typing import Generic
+from typing import TypeVar
 from typing import Union
+
+from pathable.protocols import Subscriptable
+
+SK = TypeVar('SK', bound=Hashable)
+SV = TypeVar('SV')
+CSK = TypeVar('CSK', bound=Hashable)
+CSV = TypeVar('CSV')
 
 
 class BaseAccessor:
     """Base accessor."""
 
-    def stat(self, parts: list[Hashable]) -> dict[str, Any]:
+    def stat(self, parts: Sequence[Hashable]) -> dict[str, Any]:
         raise NotImplementedError
 
-    def keys(self, parts: list[Hashable]) -> Any:
+    def keys(self, parts: Sequence[Hashable]) -> Sequence[Any]:
         raise NotImplementedError
 
-    def len(self, parts: list[Hashable]) -> int:
+    def len(self, parts: Sequence[Hashable]) -> int:
         raise NotImplementedError
 
     @contextmanager
+    def open(self, parts: Sequence[Hashable]) -> Iterator[Any]:
+        raise NotImplementedError
+
+
+class SubscriptableAccessor(BaseAccessor, Generic[SK, SV]):
+    """Accessor for subscriptable content."""
+
+    def __init__(self, content: Subscriptable[SK, SV]):
+        self.content = content
+
+    def keys(self, parts: Sequence[Hashable]) -> Sequence[SK]:
+        raise NotImplementedError
+
+    @classmethod
+    def _open(cls, content: Subscriptable[SK, SV], parts: Sequence[Hashable]) -> Union[SV, Subscriptable[SK, SV]]:
+        result: Union[SV, Subscriptable[SK, SV]] = content
+        for part in parts:
+            part = cast(SK, part)
+            # content not travelable
+            if not isinstance(result, Subscriptable):
+                raise ValueError
+            # content trvelable but has no specific part
+            if not part in result:
+                raise KeyError
+            result = result[part]
+        return result
+
+    @contextmanager
     def open(
-        self, parts: list[Hashable]
-    ) -> Iterator[Union[Mapping[Hashable, Any], Any]]:
-        raise NotImplementedError
+        self, parts: Sequence[Hashable]
+    ) -> Iterator[Union[Subscriptable[SK, SV], Any]]:
+        try:
+            yield self._open(self.content, parts)
+        finally:
+            pass
 
 
-class LookupAccessor(BaseAccessor):
-    """Accessor for object that supports __getitem__ lookups"""
+class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, CSV]):
 
-    _lookup_refs: dict[int, Mapping[Hashable, Any]] = {}
+    _content_refs: dict[int, Subscriptable[CSK, CSV]] = {}
 
-    def __init__(self, lookup: Mapping[Hashable, Any]):
-        self.lookup = lookup
+    def __init__(self, content: Subscriptable[CSK, CSV]):
+        super().__init__(content)
 
-        LookupAccessor._lookup_refs[id(lookup)] = lookup
+        self._content_refs[id(content)] = content
 
-    def stat(self, parts: list[Hashable]) -> dict[str, Any]:
-        raise NotImplementedError
+    @classmethod
+    @lru_cache(maxsize=None)
+    def _open_content_id(cls, content_id: int, parts: Sequence[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
+        content: Subscriptable[CSK, CSV] = cls._content_refs[content_id]
+        return super()._open(content, parts)
 
-    def keys(self, parts: list[Hashable]) -> Any:
+    @classmethod
+    def _open(cls, content: Subscriptable[CSK, CSV], parts: Sequence[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
+        return cls._open_content_id(id(content), parts)
+
+
+class LookupAccessor(CachedSubscriptableAccessor[Union[str, int], Any]):
+
+    def keys(self, parts: Sequence[Hashable]) -> Sequence[Union[str, int]]:
         with self.open(parts) as d:
             if isinstance(d, Mapping):
-                return d.keys()
+                return list(d.keys())
             if isinstance(d, list):
                 return list(range(len(d)))
             raise AttributeError
 
-    def len(self, parts: list[Hashable]) -> int:
+    def len(self, parts: Sequence[Hashable]) -> int:
         with self.open(parts) as d:
             return len(d)
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def _open_lookup(cls, lookup_id: int, parts: tuple[Hashable, ...]) -> Any:
-        lookup = cls._lookup_refs[lookup_id]
-        content = lookup
-        for part in parts:
-            content = content[part]
-        return content
-
-    @contextmanager
-    def open(
-        self, parts: list[Hashable]
-    ) -> Iterator[Union[Mapping[Hashable, Any], Any]]:
-        content = self._open_lookup(id(self.lookup), tuple(parts))
-        try:
-            yield content
-        finally:
-            pass

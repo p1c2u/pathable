@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
+from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import Union
@@ -28,11 +29,11 @@ class BasePath(BasePathData):
         separator = kwargs.pop("separator", SEPARATOR)
         super().__init__(parts, separator=separator)
 
-        self._cparts_cached: Union[list[str], None] = None
+        self._cparts_cached: Union[tuple[str, ...], None] = None
 
     @classmethod
     def _from_parts(
-        cls: Type[TBasePath], args: list[Any], separator: str = SEPARATOR
+        cls: Type[TBasePath], args: Sequence[Any], separator: str = SEPARATOR
     ) -> TBasePath:
         self = cls(separator=separator)
         self.parts = parse_args(args)
@@ -40,21 +41,21 @@ class BasePath(BasePathData):
 
     @classmethod
     def _from_parsed_parts(
-        cls: Type[TBasePath], parts: list[Hashable], separator: str = SEPARATOR
+        cls: Type[TBasePath], parts: tuple[Hashable, ...], separator: str = SEPARATOR
     ) -> TBasePath:
         self = cls(separator=separator)
         self.parts = parts
         return self
 
     @property
-    def _cparts(self) -> list[Any]:
+    def _cparts(self) -> tuple[str, ...]:
         # Cached casefolded parts, for hashing and comparison
         if self._cparts_cached is None:
             self._cparts_cached = self._get_cparts()
         return self._cparts_cached
 
-    def _get_cparts(self) -> list[str]:
-        return [str(p) for p in self.parts]
+    def _get_cparts(self) -> tuple[str, ...]:
+        return tuple(str(p) for p in self.parts)
 
     def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
         parts = parse_args(args, self.separator)
@@ -64,7 +65,7 @@ class BasePath(BasePathData):
     def _make_child_relpath(self: TBasePath, part: Hashable) -> TBasePath:
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
-        parts = self.parts + [part]
+        parts = self.parts + (part, )
         return self._from_parsed_parts(parts, self.separator)
 
     def __str__(self) -> str:
@@ -88,7 +89,7 @@ class BasePath(BasePathData):
 
     def __rtruediv__(self: TBasePath, key: Hashable) -> TBasePath:
         try:
-            return self._from_parts([key] + self.parts)
+            return self._from_parts((key, ) + self.parts)
         except TypeError:
             return NotImplemented
 
@@ -131,7 +132,7 @@ class AccessorPath(BasePath):
     @classmethod
     def _from_parsed_parts(
         cls: Type[TAccessorPath],
-        parts: list[Hashable],
+        parts: tuple[Hashable, ...],
         separator: str = SEPARATOR,
         accessor: Union[BaseAccessor, None] = None,
     ) -> TAccessorPath:
@@ -153,7 +154,7 @@ class AccessorPath(BasePath):
     ) -> TAccessorPath:
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
-        parts = self.parts + [part]
+        parts = self.parts + (part, )
         return self._from_parsed_parts(
             parts, separator=self.separator, accessor=self.accessor,
         )

@@ -5,5 +5,5 @@ from dataclasses import dataclass
 @dataclass
 class BasePathData:
 
-    parts: list[Hashable]
+    parts: tuple[Hashable, ...]
     separator: str
