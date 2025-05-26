@@ -62,7 +62,7 @@ python = ">=3.9,<4.0"
 [tool.poetry.extras]
 dev = ["pre-commit"]
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 tbump = "^6.11.0"
 pre-commit =  {version = "*", optional = true}
 pytest = "^6.2.5"
