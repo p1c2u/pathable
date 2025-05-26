@@ -63,6 +63,7 @@ python = ">=3.9,<4.0"
 dev = ["pre-commit"]
 
 [tool.poetry.dev-dependencies]
+tbump = "^6.11.0"
 pre-commit =  {version = "*", optional = true}
 pytest = "^6.2.5"
 pytest-flake8 = "=1.1.0"
@@ -90,3 +91,27 @@ line-length = 79
 profile = "black"
 line_length = 79
 force_single_line = true
+
+[tool.tbump]
+
+[tool.tbump.git]
+message_template = "Version {new_version}"
+tag_template = "{new_version}"
+
+[tool.tbump.version]
+current = "0.4.4"
+regex = '''
+  (?P<major>\d+)
+  \.
+  (?P<minor>\d+)
+  \.
+  (?P<patch>\d+)
+  (?P<prerelease>[a-z]+\d+)?
+'''
+
+[[tool.tbump.file]]
+src = "pathable/__init__.py"
+
+[[tool.tbump.file]]
+src = "pyproject.toml"
+search = 'version = "{current_version}"'
