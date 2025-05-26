@@ -12,6 +12,8 @@ from typing import TypeVar
 from typing import Union
 
 from pathable.protocols import Subscriptable
+from pathable.types import LookupKey
+from pathable.types import LookupValue
 
 SK = TypeVar('SK', bound=Hashable)
 SV = TypeVar('SV')
@@ -93,9 +95,9 @@ class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, 
         return cls._open_content_id(id(content), parts)
 
 
-class LookupAccessor(CachedSubscriptableAccessor[Union[str, int], Union[dict[Hashable, Any], list[Any]]]):
+class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
-    def keys(self, parts: Sequence[Hashable]) -> Sequence[Union[str, int]]:
+    def keys(self, parts: Sequence[Hashable]) -> Sequence[LookupKey]:
         with self.open(parts) as d:
             if isinstance(d, Mapping):
                 return list(d.keys())
