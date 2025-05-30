@@ -1,15 +1,13 @@
 from collections.abc import Hashable
-from typing import Any
 from typing import Protocol
 from typing import runtime_checkable
 from typing import TypeVar
-from typing import Union
 
-K = TypeVar('K', bound=Hashable, contravariant=True)
-V = TypeVar('V', covariant=True)
+TKey = TypeVar('TKey', bound=Hashable, contravariant=True)
+TValue_co = TypeVar('TValue_co', covariant=True)
 
 @runtime_checkable
-class Subscriptable(Protocol[K, V]):
-    def __contains__(self, key: K) -> bool: ...
-    def __getitem__(self, key: K) -> Union[V, Any]: ...
+class Subscriptable(Protocol[TKey, TValue_co]):
+    def __contains__(self, key: TKey) -> bool: ...
+    def __getitem__(self, key: TKey) -> TValue_co: ...
     def __len__(self) -> int: ...

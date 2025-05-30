@@ -15,6 +15,7 @@ from pathable.accessors import LookupAccessor
 from pathable.dataclasses import BasePathData
 from pathable.parsers import SEPARATOR
 from pathable.parsers import parse_args
+from pathable.types import Lookup
 
 TBasePath = TypeVar("TBasePath", bound="BasePath")
 TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath")
@@ -246,7 +247,7 @@ class LookupPath(AccessorPath):
     @classmethod
     def _from_lookup(
         cls: Type[TLookupPath],
-        lookup: Mapping[Hashable, Any],
+        lookup: Lookup,
         *args: Any,
         **kwargs: Any,
     ) -> TLookupPath:
