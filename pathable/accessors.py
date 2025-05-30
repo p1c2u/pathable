@@ -11,6 +11,9 @@ from typing import Generic
 from typing import TypeVar
 from typing import Union
 
+from pyrsistent import pdeque
+from pyrsistent import PDeque
+
 from pathable.protocols import Subscriptable
 from pathable.types import LookupKey
 from pathable.types import LookupValue
@@ -52,25 +55,32 @@ class SubscriptableAccessor(BaseAccessor, Generic[SK, SV]):
             return len(d)
 
     @classmethod
-    def _open(cls, content: Subscriptable[SK, SV], parts: Sequence[Hashable]) -> Union[SV, Subscriptable[SK, SV]]:
+    def _open(cls, content: Subscriptable[SK, SV], parts: PDeque[Hashable]) -> Union[SV, Subscriptable[SK, SV]]:
         result: Union[SV, Subscriptable[SK, SV]] = content
-        for part in parts:
-            part = cast(SK, part)
-            # content not travelable
-            if not isinstance(result, Subscriptable):
-                raise ValueError
-            # content trvelable but has no specific part
-            if not part in result:
-                raise KeyError
-            result = result[part]
-        return result
+
+        try:
+            part = parts[0]
+        except IndexError:
+            return result
+        else:
+            parts = parts.popleft()
+
+        part = cast(SK, part)
+        # content not subscriptable
+        if not isinstance(result, Subscriptable):
+            raise ValueError
+        # content subscriptable but has no specific part
+        if not part in result:
+            raise KeyError
+        result = result[part]
+        return cls._open(cast(Subscriptable[SK, SV], result), parts)
 
     @contextmanager
     def open(
         self, parts: Sequence[Hashable]
     ) -> Iterator[Union[Subscriptable[SK, SV], Any]]:
         try:
-            yield self._open(self.content, parts)
+            yield self._open(self.content, pdeque(parts))
         finally:
             pass
 
@@ -85,13 +95,14 @@ class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, 
         self._content_refs[id(content)] = content
 
     @classmethod
-    @lru_cache(maxsize=None)
-    def _open_content_id(cls, content_id: int, parts: Sequence[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
+    @lru_cache
+    def _open_content_id(cls, content_id: int, parts: PDeque[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
         content: Subscriptable[CSK, CSV] = cls._content_refs[content_id]
         return super()._open(content, parts)
 
     @classmethod
-    def _open(cls, content: Subscriptable[CSK, CSV], parts: Sequence[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
+    def _open(cls, content: Subscriptable[CSK, CSV], parts: PDeque[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
+        cls._content_refs[id(content)] = content
         return cls._open_content_id(id(content), parts)
 
 
