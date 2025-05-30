@@ -58,6 +58,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
+pyrsistent = "^0.20.0"
 
 [tool.poetry.extras]
 dev = ["pre-commit"]
