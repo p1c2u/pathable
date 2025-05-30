@@ -275,19 +275,22 @@ pyflakes = ">=2.3.0,<2.4.0"
 
 [[package]]
 name = "flynt"
-version = "0.76"
+version = "1.0.2"
 description = "CLI tool to convert a python project's %-formatted strings to f-strings."
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 groups = ["dev"]
 files = [
-    {file = "flynt-0.76-py3-none-any.whl", hash = "sha256:fc122c5f589b0c4d019d7d33597f4925fd886a8e6fb3cbadb918e4baa3661687"},
-    {file = "flynt-0.76.tar.gz", hash = "sha256:7a99c5a550ea9e8c21203f6999ed8ce69cbad7bc8465268469777cf06413193a"},
+    {file = "flynt-1.0.2-py3-none-any.whl", hash = "sha256:0388f44acf5c5ccaf96dbd23b7817f56a1b0e54b36df7993b6e64e07939f7dab"},
+    {file = "flynt-1.0.2.tar.gz", hash = "sha256:e725eaf2d6b5de8ba356599b638bc3561c6a37c0b92f4979cd4cd451be2c0ce5"},
 ]
 
 [package.dependencies]
 astor = "*"
-tomli = ">=1.1.0"
+tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
+
+[package.extras]
+dev = ["build", "pre-commit", "pytest", "pytest-cov", "twine"]
 
 [[package]]
 name = "identify"
@@ -770,6 +773,7 @@ description = "A lil' TOML parser"
 optional = false
 python-versions = ">=3.7"
 groups = ["dev"]
+markers = "python_full_version <= \"3.11.0a6\""
 files = [
     {file = "tomli-2.0.0-py3-none-any.whl", hash = "sha256:b5bde28da1fed24b9bd1d4d2b8cba62300bfb4ec9a6187a957e8ddb9434c5224"},
     {file = "tomli-2.0.0.tar.gz", hash = "sha256:c292c34f58502a1eb2bbb9f5bbc9a5ebc37bee10ffb8c2d6bbdfa8eb13cc14e1"},
@@ -839,4 +843,4 @@ dev = []
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<4.0"
-content-hash = "0284a2185f820e786e4976af5ba2cb0f414dac3de7c34cede85a5fad95c51378"
+content-hash = "c2891eadaa1a818740db50817b6914b521f999c03a41b1764c23a0cd80dc1030"
