@@ -35,7 +35,7 @@ strict = true
 
 [tool.poetry]
 name = "pathable"
-version = "0.5.0a2"
+version = "0.5.0a3"
 description = "Object-oriented paths"
 authors = ["Artur Maciag <maciag.artur@gmail.com>"]
 license = "Apache-2.0"
@@ -100,7 +100,7 @@ message_template = "Version {new_version}"
 tag_template = "{new_version}"
 
 [tool.tbump.version]
-current = "0.5.0a2"
+current = "0.5.0a3"
 regex = '''
   (?P<major>\d+)
   \.
