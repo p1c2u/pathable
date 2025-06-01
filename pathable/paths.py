@@ -2,10 +2,12 @@
 import warnings
 from collections.abc import Hashable
 from collections.abc import Iterator
-from collections.abc import Mapping
 from contextlib import contextmanager
+from dataclasses import dataclass
+from functools import cached_property
 from typing import Any
 from typing import Generic
+from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
@@ -13,7 +15,6 @@ from typing import Union
 
 from pathable.accessors import NodeAccessor
 from pathable.accessors import LookupAccessor
-from pathable.dataclasses import BasePathData
 from pathable.parsers import SEPARATOR
 from pathable.parsers import parse_args
 from pathable.types import LookupNode
@@ -24,40 +25,35 @@ TNodeAccessor = TypeVar("TNodeAccessor", bound=NodeAccessor[Any, Any, Any])
 TLookupPath = TypeVar("TLookupPath", bound="LookupPath")
 
 
-class BasePath(BasePathData):
+@dataclass(frozen=True, init=False)
+class BasePath:
     """Base path."""
+    parts: tuple[Hashable, ...]
+    separator: str = SEPARATOR
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, separator: Optional[str] = None):
         parts = parse_args(list(args))
-        separator = kwargs.pop("separator", SEPARATOR)
-        super().__init__(parts, separator=separator)
-
-        self._cparts_cached: Union[tuple[str, ...], None] = None
+        object.__setattr__(self, 'parts', parts)
+        object.__setattr__(self, 'separator', separator or self.separator)
 
     @classmethod
     def _from_parts(
-        cls: Type[TBasePath], args: Sequence[Any], separator: str = SEPARATOR
+        cls: Type[TBasePath], args: Sequence[Any], separator: Optional[str] = None
     ) -> TBasePath:
-        self = cls(separator=separator)
-        self.parts = parse_args(args)
-        return self
+        return cls(*args, separator=separator)
 
     @classmethod
     def _from_parsed_parts(
-        cls: Type[TBasePath], parts: tuple[Hashable, ...], separator: str = SEPARATOR
-    ) -> TBasePath:
-        self = cls(separator=separator)
-        self.parts = parts
-        return self
+        cls: Type[TBasePath], parts: tuple[Hashable, ...], separator: Optional[str] = None,
+    ) -> "TBasePath":
+        instance = cls.__new__(cls)
+        object.__setattr__(instance, 'parts', parts)
+        object.__setattr__(instance, 'separator', separator or instance.separator)
+        return instance
 
-    @property
+    @cached_property
     def _cparts(self) -> tuple[str, ...]:
         # Cached casefolded parts, for hashing and comparison
-        if self._cparts_cached is None:
-            self._cparts_cached = self._get_cparts()
-        return self._cparts_cached
-
-    def _get_cparts(self) -> tuple[str, ...]:
         return tuple(str(p) for p in self.parts)
 
     def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
@@ -124,37 +120,26 @@ class BasePath(BasePathData):
 
 class AccessorPath(BasePath, Generic[TNodeAccessor]):
     """Path for object that can be read by accessor."""
-    node_accessor_cls: type[TNodeAccessor] = NotImplemented
+    accessor: TNodeAccessor
 
-    def __init__(self, accessor: TNodeAccessor, *args: Any, **kwargs: Any):
-        separator = kwargs.pop("separator", SEPARATOR)
+    def __init__(self, accessor: TNodeAccessor, *args: Any, separator: Optional[str] = None):
+        object.__setattr__(self, 'accessor', accessor)
         super().__init__(*args, separator=separator)
-        self.accessor = accessor
-
-        self._content_cached: Any = None
-
-    @classmethod
-    def _from_node(
-        cls: Type[TAccessorPath],
-        node: Any,
-        *args: Any,
-        **kwargs: Any,
-    ) -> TAccessorPath:
-        accessor = cls.node_accessor_cls(node)
-        return cls(accessor, *args, **kwargs)
 
     @classmethod
     def _from_parsed_parts(
         cls: Type[TAccessorPath],
         parts: tuple[Hashable, ...],
-        separator: str = SEPARATOR,
+        separator: Optional[str] = None,
         accessor: Union[TNodeAccessor, None] = None,
     ) -> TAccessorPath:
         if accessor is None:
             raise ValueError("accessor must be provided")
-        self = cls(accessor, separator=separator)
-        self.parts = parts
-        return self
+        instance = cls.__new__(cls)
+        object.__setattr__(instance, 'parts', parts)
+        object.__setattr__(instance, 'separator', separator or instance.separator)
+        object.__setattr__(instance, 'accessor', accessor)
+        return instance
 
     def _make_child(self: TAccessorPath, args: list[Any]) -> TAccessorPath:
         parts = parse_args(args, self.separator)
@@ -260,7 +245,6 @@ class AccessorPath(BasePath, Generic[TNodeAccessor]):
 
 class LookupPath(AccessorPath[LookupAccessor]):
     """Path for object that supports __getitem__ lookups."""
-    node_accessor_cls = LookupAccessor
 
     @classmethod
     def _from_lookup(
