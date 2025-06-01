@@ -1,21 +1,19 @@
 from collections.abc import Mapping
 from collections.abc import Hashable
-from collections.abc import Iterator
-from contextlib import contextmanager
 from typing import Any
 from types import GeneratorType
 from typing import Union
 
 import pytest
 
-from pathable.accessors import BaseAccessor
+from pathable.accessors import NodeAccessor
 from pathable.parsers import SEPARATOR
 from pathable.paths import AccessorPath
 from pathable.paths import BasePath
 from pathable.paths import LookupPath
 
 
-class MockAccessor(BaseAccessor):
+class MockAccessor(NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, Any]):
     """Mock accessor."""
 
     def __init__(self, *children_keys: str, content: Any = None, exists: bool = False):
@@ -23,22 +21,14 @@ class MockAccessor(BaseAccessor):
         self._content = content
         self._exists = exists
 
-    def stat(self, parts: list[Hashable]) -> dict[str, Any]:
-        return {
-            "exists": self._exists,
-        }
-
     def keys(self, parts: list[Hashable]) -> Any:
         return self._children_keys
 
     def len(self, parts: list[Hashable]) -> int:
         return len(self._children_keys)
 
-    @contextmanager
-    def open(
-        self, parts: list[Hashable]
-    ) -> Iterator[Union[Mapping[Hashable, Any], Any]]:
-        yield self._content
+    def read(self, parts: list[Hashable]) -> Union[Mapping[Hashable, Any], Any]:
+        return self._content
 
 
 class MockResource(dict):

@@ -1,12 +1,10 @@
 """Pathable accessors module"""
 from collections.abc import Hashable
-from collections.abc import Iterator
 from collections.abc import Mapping
 from collections.abc import Sequence
-from contextlib import contextmanager
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Generic
 from typing import TypeVar
 from typing import Union
@@ -17,101 +15,136 @@ from pyrsistent import PDeque
 from pathable.protocols import Subscriptable
 from pathable.types import LookupKey
 from pathable.types import LookupValue
+from pathable.types import LookupNode
 
-SK = TypeVar('SK', bound=Hashable)
-SV = TypeVar('SV')
-CSK = TypeVar('CSK', bound=Hashable)
-CSV = TypeVar('CSV')
+K = TypeVar('K', bound=Hashable, contravariant=True)
+V = TypeVar('V', covariant=True)
+N = TypeVar('N')
+SK = TypeVar('SK', bound=Hashable, contravariant=True)
+SV = TypeVar('SV', covariant=True)
+CSK = TypeVar('CSK', bound=Hashable, contravariant=True)
+CSV = TypeVar('CSV', covariant=True)
 
 
-class BaseAccessor:
-    """Base accessor."""
+class NodeAccessor(Generic[N, K, V]):
+    """Node accessor."""
 
-    def stat(self, parts: Sequence[Hashable]) -> dict[str, Any]:
+    def __init__(self, node: N):
+        self.node = node
+
+    def stat(self, parts: Sequence[K]) -> dict[str, Any]:
         raise NotImplementedError
 
-    def keys(self, parts: Sequence[Hashable]) -> Sequence[Any]:
+    def keys(self, parts: Sequence[K]) -> Sequence[K]:
         raise NotImplementedError
 
-    def len(self, parts: Sequence[Hashable]) -> int:
+    def len(self, parts: Sequence[K]) -> int:
         raise NotImplementedError
 
-    @contextmanager
-    def open(self, parts: Sequence[Hashable]) -> Iterator[Any]:
-        raise NotImplementedError
-
-
-class SubscriptableAccessor(BaseAccessor, Generic[SK, SV]):
-    """Accessor for subscriptable content."""
-
-    def __init__(self, content: Subscriptable[SK, SV]):
-        self.content = content
-
-    def keys(self, parts: Sequence[Hashable]) -> Sequence[SK]:
-        raise NotImplementedError
-
-    def len(self, parts: Sequence[Hashable]) -> int:
-        with self.open(parts) as d:
-            return len(d)
+    def read(self, parts: Sequence[K]) -> V:
+        node = self._get_node(self.node, pdeque(parts))
+        return self._read_node(node)
 
     @classmethod
-    def _open(cls, content: Subscriptable[SK, SV], parts: PDeque[Hashable]) -> Union[SV, Subscriptable[SK, SV]]:
-        result: Union[SV, Subscriptable[SK, SV]] = content
-
+    def _get_node(cls, node: N, parts: PDeque[K]) -> N:
         try:
-            part = parts[0]
+            part, parts = cls._pop_next_part(parts)
         except IndexError:
-            return result
-        else:
-            parts = parts.popleft()
+            return node
 
-        part = cast(SK, part)
-        # content not subscriptable
-        if not isinstance(result, Subscriptable):
-            raise ValueError
-        # content subscriptable but has no specific part
-        if not part in result:
+        subnode = cls._get_subnode(node, part)
+        return cls._get_node(subnode, parts)
+
+    @classmethod
+    def _pop_next_part(cls, parts: PDeque[K]) -> tuple[K, PDeque[K]]:
+        part = parts[0]
+        parts = parts.popleft()
+        return part, parts
+
+    @classmethod
+    def _read_node(cls, node: N) -> V:
+        raise NotImplementedError
+
+    @classmethod
+    def _is_node_valid(cls, node: N) -> bool:
+        raise NotImplementedError
+
+    @classmethod
+    def _get_subnode(cls, node: N, part: K) -> N:
+        raise NotImplementedError
+
+
+class PathAccessor(NodeAccessor[Path, str, bytes]):
+
+    def keys(self, parts: Sequence[str]) -> Sequence[str]:
+        subpath = Path(self.node, *parts)
+        return [path.parts[0] for path in subpath.iterdir()]
+
+    def len(self, parts: Sequence[str]) -> int:
+        subpath = Path(self.node, *parts)
+        return len(list(subpath.iterdir()))
+
+    def read(self, parts: Sequence[str]) -> bytes:
+        node = self._get_node(self.node, pdeque(parts))
+        return self._read_node(node)
+
+    @classmethod
+    def _read_node(cls, node: Path) -> bytes:
+        return node.read_bytes()
+
+    @classmethod
+    def _get_subnode(cls, node: Path, part: str) -> Path:
+        subnode = node / part
+        if not subnode.exists():
             raise KeyError
-        result = result[part]
-        return cls._open(cast(Subscriptable[SK, SV], result), parts)
+        return subnode
 
-    @contextmanager
-    def open(
-        self, parts: Sequence[Hashable]
-    ) -> Iterator[Union[Subscriptable[SK, SV], Any]]:
-        try:
-            yield self._open(self.content, pdeque(parts))
-        finally:
-            pass
+
+class SubscriptableAccessor(NodeAccessor[Union[Subscriptable[SK, SV], SV], SK, SV], Generic[SK, SV]):
+    """Accessor for subscriptable content."""
+
+    @classmethod
+    def _get_subnode(cls, node: Union[Subscriptable[SK, SV], SV], part: SK) -> Union[Subscriptable[SK, SV], SV]:
+        if not isinstance(node, Subscriptable) or not part in node:
+            raise KeyError
+        return node[part]
 
 
 class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, CSV]):
 
-    _content_refs: dict[int, Subscriptable[CSK, CSV]] = {}
+    _node_refs: dict[int, Union[Subscriptable[CSK, CSV], CSV]] = {}
 
-    def __init__(self, content: Subscriptable[CSK, CSV]):
-        super().__init__(content)
+    def __init__(self, node: Union[Subscriptable[CSK, CSV], CSV]):
+        super().__init__(node)
 
-        self._content_refs[id(content)] = content
+        self._node_refs[id(node)] = node
+
+    def read(self, parts: Sequence[CSK]) -> CSV:
+        self._node_refs[id(self.node)] = self.node
+        return self._read_cached(id(self.node), pdeque(parts))
 
     @classmethod
     @lru_cache
-    def _open_content_id(cls, content_id: int, parts: PDeque[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
-        content: Subscriptable[CSK, CSV] = cls._content_refs[content_id]
-        return super()._open(content, parts)
-
-    @classmethod
-    def _open(cls, content: Subscriptable[CSK, CSV], parts: PDeque[Hashable]) -> Union[CSV, Subscriptable[CSK, CSV]]:
-        cls._content_refs[id(content)] = content
-        return cls._open_content_id(id(content), parts)
+    def _read_cached(cls, node_id: int, parts: PDeque[CSK]) -> CSV:
+        node: Union[Subscriptable[CSK, CSV], CSV] = cls._node_refs[node_id]
+        node = cls._get_node(node, pdeque(parts))
+        return cls._read_node(node)
 
 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
-    def keys(self, parts: Sequence[Hashable]) -> Sequence[LookupKey]:
-        with self.open(parts) as d:
-            if isinstance(d, Mapping):
-                return list(d.keys())
-            if isinstance(d, list):
-                return list(range(len(d)))
-            raise AttributeError
+    def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
+        node = self._get_node(self.node, pdeque(parts))
+        if isinstance(node, Mapping):
+            return list(node.keys())
+        if isinstance(node, list):
+            return list(range(len(node)))
+        raise AttributeError
+
+    def len(self, parts: Sequence[LookupKey]) -> int:
+        node = self._get_node(self.node, pdeque(parts))
+        return len(node)
+
+    @classmethod
+    def _read_node(cls, node: LookupNode) -> LookupValue:
+        return node
