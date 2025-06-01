@@ -5,20 +5,22 @@ from collections.abc import Iterator
 from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
+from typing import Generic
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import Union
 
-from pathable.accessors import BaseAccessor
+from pathable.accessors import NodeAccessor
 from pathable.accessors import LookupAccessor
 from pathable.dataclasses import BasePathData
 from pathable.parsers import SEPARATOR
 from pathable.parsers import parse_args
-from pathable.types import Lookup
+from pathable.types import LookupNode
 
 TBasePath = TypeVar("TBasePath", bound="BasePath")
-TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath")
+TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath[Any]")
+TNodeAccessor = TypeVar("TNodeAccessor", bound=NodeAccessor[Any, Any, Any])
 TLookupPath = TypeVar("TLookupPath", bound="LookupPath")
 
 
@@ -120,10 +122,11 @@ class BasePath(BasePathData):
         return self._cparts >= other._cparts
 
 
-class AccessorPath(BasePath):
+class AccessorPath(BasePath, Generic[TNodeAccessor]):
     """Path for object that can be read by accessor."""
+    node_accessor_cls: type[TNodeAccessor] = NotImplemented
 
-    def __init__(self, accessor: BaseAccessor, *args: Any, **kwargs: Any):
+    def __init__(self, accessor: TNodeAccessor, *args: Any, **kwargs: Any):
         separator = kwargs.pop("separator", SEPARATOR)
         super().__init__(*args, separator=separator)
         self.accessor = accessor
@@ -131,11 +134,21 @@ class AccessorPath(BasePath):
         self._content_cached: Any = None
 
     @classmethod
+    def _from_node(
+        cls: Type[TAccessorPath],
+        node: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> TAccessorPath:
+        accessor = cls.node_accessor_cls(node)
+        return cls(accessor, *args, **kwargs)
+
+    @classmethod
     def _from_parsed_parts(
         cls: Type[TAccessorPath],
         parts: tuple[Hashable, ...],
         separator: str = SEPARATOR,
-        accessor: Union[BaseAccessor, None] = None,
+        accessor: Union[TNodeAccessor, None] = None,
     ) -> TAccessorPath:
         if accessor is None:
             raise ValueError("accessor must be provided")
@@ -165,8 +178,10 @@ class AccessorPath(BasePath):
             yield self._make_child_relpath(key)
 
     def __getitem__(self, key: Hashable) -> Any:
-        with self.open() as d:
-            return d[key]
+        if key not in self:
+            raise KeyError(key)
+        path = self / key
+        return path.read_value()
 
     def __contains__(self, key: Hashable) -> bool:
         return key in self.accessor.keys(self.parts)
@@ -184,10 +199,10 @@ class AccessorPath(BasePath):
             DeprecationWarning,
             stacklevel=2,
         )
-        if key not in self:
-            raise default
-        path = self / key
-        return path.read_value()
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def iter(self: TAccessorPath) -> Iterator[TAccessorPath]:
         """Iterate over all child paths."""
@@ -212,11 +227,10 @@ class AccessorPath(BasePath):
 
     def content(self) -> Any:
         warnings.warn(
-            "'content' method is deprecated.",
+            "'content' method is deprecated. Use 'read_value' instead.",
             DeprecationWarning,
         )
-        with self.open() as d:
-            return d
+        return self.read_value()
 
     def get(self, key: Hashable, default: Any = None) -> Any:
         """Return the child path for key if key is in the path, else default."""
@@ -232,24 +246,28 @@ class AccessorPath(BasePath):
     @contextmanager
     def open(self) -> Any:
         """Open the path."""
-        with self.accessor.open(self.parts) as content:
-            yield content
+        warnings.warn(
+            "'open' method is deprecated. Use 'read_value' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        yield self.read_value()
 
     def read_value(self) -> Any:
         """Return the path's value."""
-        with self.open() as d:
-            return d
+        return self.accessor.read(self.parts)
 
 
-class LookupPath(AccessorPath):
+class LookupPath(AccessorPath[LookupAccessor]):
     """Path for object that supports __getitem__ lookups."""
+    node_accessor_cls = LookupAccessor
 
     @classmethod
     def _from_lookup(
-        cls: Type[TLookupPath],
-        lookup: Lookup,
+        cls: type["LookupPath"],
+        lookup: LookupNode,
         *args: Any,
         **kwargs: Any,
-    ) -> TLookupPath:
+    ) -> "LookupPath":
         accessor = LookupAccessor(lookup)
         return cls(accessor, *args, **kwargs)

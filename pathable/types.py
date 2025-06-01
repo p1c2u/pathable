@@ -5,6 +5,6 @@ from typing import Union
 from pathable.protocols import Subscriptable
 
 LookupKey = Union[str, int]
-LookupValue = Union["Lookup", Any]
-Lookup = Subscriptable[LookupKey, LookupValue]
+LookupValue = Any
+LookupNode = Union[Subscriptable[LookupKey, LookupValue], LookupValue]
 ParsePart = Union[str, int]
