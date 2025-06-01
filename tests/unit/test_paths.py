@@ -17,6 +17,7 @@ class MockAccessor(NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, An
     """Mock accessor."""
 
     def __init__(self, *children_keys: str, content: Any = None, exists: bool = False):
+        super().__init__(None)
         self._children_keys = children_keys
         self._content = content
         self._exists = exists
@@ -29,6 +30,19 @@ class MockAccessor(NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, An
 
     def read(self, parts: list[Hashable]) -> Union[Mapping[Hashable, Any], Any]:
         return self._content
+
+
+class MockPart(str):
+    """Mock resource for testing purposes."""
+
+    def __init__(self, s: str):
+        self.s = s
+
+        self.str_counter = 0
+
+    def __str__(self) -> str:
+        self.str_counter += 1
+        return self.s
 
 
 class MockResource(dict):
@@ -138,12 +152,15 @@ class TestBasePathStr:
         assert str(p) == separator.join(args)
 
     def test_cparts_cached(self):
-        args = ["part1", "part2"]
+        part = MockPart("part1")
+        args = [part, ]
         separator = ","
         p = BasePath(*args, separator=separator)
-        p._cparts_cached = p._get_cparts()
 
         assert str(p) == separator.join(args)
+        assert part.str_counter == 1
+        assert str(p) == separator.join(args)
+        assert part.str_counter == 1
 
 
 class TestBasePathRepr:
@@ -199,12 +216,16 @@ class TestBasePathHash:
         assert hash(p) == hash(tuple(p._cparts))
 
     def test_cparts_cached(self):
-        args = ["part1", "part2"]
+        part = MockPart("part1")
+        args = [part, ]
         separator = ","
         p = BasePath(*args, separator=separator)
-        p._cparts_cached = p._get_cparts()
 
         assert hash(p) == hash(tuple(p._cparts))
+        assert part.str_counter == 1
+        assert hash(p) == hash(tuple(p._cparts))
+        assert part.str_counter == 1
+
 
 
 class TestBasePathMakeChild:
@@ -719,8 +740,8 @@ class TestLookupPathIter:
         assert type(result) == GeneratorType
         result_list = list(result)
         assert result_list == [
-            LookupPath._from_lookup(resource, "test1/test2/0"),
-            LookupPath._from_lookup(resource, "test1/test2/1"),
+            LookupPath._from_lookup(resource, "test1/test2", 0),
+            LookupPath._from_lookup(resource, "test1/test2", 1),
         ]
 
 

@@ -32,6 +32,11 @@ class NodeAccessor(Generic[N, K, V]):
     def __init__(self, node: N):
         self.node = node
 
+    def __eq__(self, other: object) -> Any:
+        if not isinstance(other, NodeAccessor):
+            return NotImplemented
+        return self.node == other.node
+
     def stat(self, parts: Sequence[K]) -> dict[str, Any]:
         raise NotImplementedError
 
