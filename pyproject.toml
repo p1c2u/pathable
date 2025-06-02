@@ -67,7 +67,7 @@ dev = ["pre-commit"]
 tbump = "^6.11.0"
 pre-commit =  {version = "*", optional = true}
 pytest = ">=6.2.5,<9.0.0"
-pytest-flake8 = "=1.1.0"
+pytest-flake8 = "=1.3.0"
 pytest-cov = "^6.1.1"
 isort = "^6.0.1"
 black = "^25.1.0"
