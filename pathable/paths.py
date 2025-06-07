@@ -21,8 +21,9 @@ from pathable.types import LookupKey
 from pathable.types import LookupNode
 from pathable.types import LookupValue
 
+# Python 3.11+ shortcut: typing.Self
 TBasePath = TypeVar("TBasePath", bound="BasePath")
-
+TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath[Any, Any, Any]")
 
 @dataclass(frozen=True, init=False)
 class BasePath:
@@ -128,11 +129,11 @@ class AccessorPath(BasePath, Generic[N, K, V]):
 
     @classmethod
     def _from_parsed_parts(
-        cls: Type["AccessorPath[N, K, V]"],
+        cls: Type[TAccessorPath],
         parts: tuple[Hashable, ...],
         separator: Optional[str] = None,
         accessor: Union[NodeAccessor[N, K, V], None] = None,
-    ) -> "AccessorPath[N, K, V]":
+    ) -> TAccessorPath:
         if accessor is None:
             raise ValueError("accessor must be provided")
         instance = cls.__new__(cls)
@@ -141,7 +142,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         object.__setattr__(instance, 'accessor', accessor)
         return instance
 
-    def _make_child(self: "AccessorPath[N, K, V]", args: list[Any]) -> "AccessorPath[N, K, V]":
+    def _make_child(self: TAccessorPath, args: list[Any]) -> TAccessorPath:
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
         return self._from_parsed_parts(
@@ -149,8 +150,8 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         )
 
     def _make_child_relpath(
-        self: "AccessorPath[N, K, V]", part: Hashable
-    ) -> "AccessorPath[N, K, V]":
+        self: TAccessorPath, part: Hashable
+    ) -> TAccessorPath:
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
         parts = self.parts + (part, )
@@ -158,7 +159,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
             parts, separator=self.separator, accessor=self.accessor,
         )
 
-    def __iter__(self: "AccessorPath[N, K, V]") -> Iterator["AccessorPath[N, K, V]"]:
+    def __iter__(self: TAccessorPath) -> Iterator[TAccessorPath]:
         for key in self.accessor.keys(self.parts):
             yield self._make_child_relpath(key)
 
@@ -189,7 +190,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         except KeyError:
             return default
 
-    def iter(self: "AccessorPath[N, K, V]") -> Iterator["AccessorPath[N, K, V]"]:
+    def iter(self: TAccessorPath) -> Iterator[TAccessorPath]:
         """Iterate over all child paths."""
         warnings.warn(
             "'iter' method is deprecated. Use 'iter(path)' instead.",
@@ -197,7 +198,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         )
         return iter(self)
 
-    def iteritems(self: "AccessorPath[N, K, V]") -> Iterator[tuple[Any, "AccessorPath[N, K, V]"]]:
+    def iteritems(self: TAccessorPath) -> Iterator[tuple[K, TAccessorPath]]:
         """Return path's items."""
         warnings.warn(
             "'iteritems' method is deprecated. Use 'items' instead.",
@@ -205,7 +206,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         )
         return self.items()
 
-    def items(self: "AccessorPath[N, K, V]") -> Iterator[tuple[Any, "AccessorPath[N, K, V]"]]:
+    def items(self: TAccessorPath) -> Iterator[tuple[K, TAccessorPath]]:
         """Return path's items."""
         for key in self.accessor.keys(self.parts):
             yield key, self._make_child_relpath(key)
