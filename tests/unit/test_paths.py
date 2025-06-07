@@ -765,19 +765,23 @@ class TestLookupPathGetItem:
 
 
 class TestLookupPathReadValue:
-    def test_valid(self):
-        value = "testvalue"
-        resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath._from_lookup(resource, "test1/test2/test3")
+    @pytest.mark.parametrize("resource,args,expected", [
+        ({"test1": {"test2": {"test3": "testvalue"}}}, ("test1/test2/test3", ), "testvalue"),
+        ({"test1": [{}, {"test3": "testvalue"}]}, ("test1", 1, "test3"), "testvalue"),
+    ])
+    def test_valid(self, resource, args, expected):
+        p = LookupPath._from_lookup(resource, *args)
 
         result = p.read_value()
 
-        assert result == value
+        assert result == expected
 
-    def test_invalid(self):
-        value = "testvalue"
-        resource = {"test1": {"test2": {"test3": value}}}
-        p = LookupPath._from_lookup(resource, "test1/test2/test4")
+    @pytest.mark.parametrize("resource,args", [
+        ({"test1": {"test2": {"test3": "testvalue"}}}, ("test1/test2/test4", )),
+        ({"test1": [{}, {"test3": "testvalue"}]}, ("test1", 0, "test3")),
+    ])
+    def test_invalid(self, resource, args):
+        p = LookupPath._from_lookup(resource, *args)
 
         with pytest.raises(KeyError):
             p.read_value()

@@ -110,7 +110,7 @@ class SubscriptableAccessor(NodeAccessor[Union[Subscriptable[SK, SV], SV], SK, S
 
     @classmethod
     def _get_subnode(cls, node: Union[Subscriptable[SK, SV], SV], part: SK) -> Union[Subscriptable[SK, SV], SV]:
-        if not isinstance(node, Subscriptable) or not part in node:
+        if not isinstance(node, Subscriptable):
             raise KeyError
         return node[part]
 
