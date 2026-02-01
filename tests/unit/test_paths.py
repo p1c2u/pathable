@@ -812,6 +812,77 @@ class TestLookupPathGet:
             [
                 {"test1": "test2"},
                 "test1",
+                'test2',
+            ],
+            [
+                {"test1": {"test2": "test3"}},
+                "test1",
+                {'test2': 'test3'},
+            ],
+        ),
+    )
+    def test_key_exists(self, resource, key, expected):
+        p = LookupPath._from_lookup(resource)
+
+        result = p.get(key)
+
+        assert result == expected
+
+class TestLookupPathExists:
+    def test_non_existing_key(self):
+        value = "testvalue"
+        resource = {"test1": {"test2": {"test3": value}}}
+        p = LookupPath._from_lookup(resource, "test1/test2/non_existing_key")
+
+        result = p.exists()
+
+        assert result is False
+
+    @pytest.mark.parametrize(
+        "resource,key",
+        (
+            [
+                {"test1": "test2"},
+                "test1",
+            ],
+            [
+                {"test1": 123},
+                "test1",
+            ],
+            [
+                {"test1": True},
+                "test1",
+            ],
+            [
+                {"test1": {"test2": "test3"}},
+                "test1",
+            ],
+        ),
+    )
+    def test_key_exists(self, resource, key):
+        p = LookupPath._from_lookup(resource, key)
+
+        result = p.exists()
+
+        assert result is True
+
+
+class TestLookupPathFloorDiv:
+
+    def test_non_existing_key(self):
+        value = "testvalue"
+        resource = {"test1": {"test2": {"test3": value}}}
+        p = LookupPath._from_lookup(resource, "test1/test2")
+
+        with pytest.raises(KeyError):
+            p // "non_existing_key"
+
+    @pytest.mark.parametrize(
+        "resource,key,expected",
+        (
+            [
+                {"test1": "test2"},
+                "test1",
                 LookupPath._from_lookup({"test1": "test2"}, "test1"),
             ],
             [
@@ -826,7 +897,41 @@ class TestLookupPathGet:
     def test_key_exists(self, resource, key, expected):
         p = LookupPath._from_lookup(resource)
 
-        result = p.get(key)
+        result = p // key
+
+        assert result == expected
+
+class TestLookupPathRfloorDiv:
+
+    def test_non_existing_key(self):
+        value = "testvalue"
+        resource = {"test1": {"test2": {"test3": value}}}
+        p = LookupPath._from_lookup(resource, "test1/test2")
+
+        with pytest.raises(KeyError):
+            "non_existing_key" // p
+
+    @pytest.mark.parametrize(
+        "resource,key,expected",
+        (
+            [
+                {"test1": "test2"},
+                "test1",
+                LookupPath._from_lookup({"test1": "test2"}, "test1"),
+            ],
+            [
+                {"test1": {"test2": "test3"}},
+                "test1",
+                LookupPath._from_lookup(
+                    {"test1": {"test2": "test3"}}, "test1"
+                ),
+            ],
+        ),
+    )
+    def test_key_exists(self, resource, key, expected):
+        p = LookupPath._from_lookup(resource)
+
+        result = key // p
 
         assert result == expected
 
