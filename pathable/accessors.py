@@ -153,18 +153,15 @@ class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     def stat(self, parts: Sequence[LookupKey]) -> Union[dict[str, Any], None]:
-        node = self._get_node(self.node, pdeque(parts))
-        if isinstance(node, Mapping):
-            return {
-                'type': 'mapping',
-                'length': len(node),
-            }
-        if isinstance(node, list):
-            return {
-                'type': 'list',
-                'length': len(node),
-            }
-        return None
+        try:
+            node = self._get_node(self.node, pdeque(parts))
+        except KeyError:
+            return None
+
+        return {
+            'type': type(node),
+            'length': len(node),
+        }
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
         node = self._get_node(self.node, pdeque(parts))

@@ -128,6 +128,17 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         super().__init__(*args, separator=separator)
 
     @classmethod
+    def _from_parts(
+        cls: Type[TAccessorPath],
+        args: Sequence[Any],
+        separator: Optional[str] = None,
+        accessor: Union[NodeAccessor[N, K, V], None] = None,
+    ) -> TAccessorPath:
+        if accessor is None:
+            raise ValueError("accessor must be provided")
+        return cls(accessor, *args, separator=separator)
+
+    @classmethod
     def _from_parsed_parts(
         cls: Type[TAccessorPath],
         parts: tuple[Hashable, ...],
@@ -158,6 +169,16 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         return self._from_parsed_parts(
             parts, separator=self.separator, accessor=self.accessor,
         )
+
+    def __rtruediv__(self: TAccessorPath, key: Hashable) -> TAccessorPath:
+        try:
+            return self._from_parts(
+                (key, ) + self.parts,
+                separator=self.separator,
+                accessor=self.accessor,
+            )
+        except TypeError:
+            return NotImplemented
 
     def __floordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key appended."""
