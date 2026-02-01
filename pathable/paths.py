@@ -159,23 +159,43 @@ class AccessorPath(BasePath, Generic[N, K, V]):
             parts, separator=self.separator, accessor=self.accessor,
         )
 
+    def __floordiv__(self: TBasePath, key: Any) -> TBasePath:
+        """Return a new existing path with the key appended."""
+        if key not in self:
+            raise KeyError(key)
+        return self / key
+
+    def __rfloordiv__(self: TBasePath, key: Any) -> TBasePath:
+        """Return a new existing path with the key prepended."""
+        new = key / self
+        if not new.exists():
+            raise KeyError(key)
+        return new
+
     def __iter__(self: TAccessorPath) -> Iterator[TAccessorPath]:
+        """Iterate over all child paths."""
         for key in self.accessor.keys(self.parts):
             yield self._make_child_relpath(key)
 
-    def __getitem__(self, key: K) -> Any:
-        if key not in self:
-            raise KeyError(key)
-        path = self / key
+    def __getitem__(self, key: K) -> V:
+        """Access a child path's value."""
+        path = self // key
         return path.read_value()
 
     def __contains__(self, key: K) -> bool:
+        """Check if a key exists in the path."""
         return key in self.accessor.keys(self.parts)
 
     def __len__(self) -> int:
+        """Return the number of child paths."""
         return self.accessor.len(self.parts)
 
+    def exists(self) -> bool:
+        """Check if the path exists."""
+        return self.accessor.stat(self.parts) is not None
+
     def keys(self) -> Sequence[K]:
+        """Return all keys at the current path."""
         return self.accessor.keys(self.parts)
 
     def getkey(self, key: K, default: Any = None) -> Any:
@@ -219,15 +239,11 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         return self.read_value()
 
     def get(self, key: K, default: Any = None) -> Any:
-        """Return the child path for key if key is in the path, else default."""
-        warnings.warn(
-            "'get' method is deprecated. Use 'key in path' and 'path / key' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if key in self:
-            return self / key
-        return default
+        """Return the value for key if key is in the path, else default."""
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     @contextmanager
     def open(self) -> Any:
@@ -239,7 +255,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         )
         yield self.read_value()
 
-    def read_value(self) -> Any:
+    def read_value(self) -> V:
         """Return the path's value."""
         return self.accessor.read(self.parts)
 
