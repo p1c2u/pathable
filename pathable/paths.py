@@ -198,45 +198,10 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         """Return all keys at the current path."""
         return self.accessor.keys(self.parts)
 
-    def getkey(self, key: K, default: Any = None) -> Any:
-        """Return the value for key if key is in the path, else default."""
-        warnings.warn(
-            "'getkey' method is deprecated. Use 'key not in path' and 'path.read_value' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def iter(self: TAccessorPath) -> Iterator[TAccessorPath]:
-        """Iterate over all child paths."""
-        warnings.warn(
-            "'iter' method is deprecated. Use 'iter(path)' instead.",
-            DeprecationWarning,
-        )
-        return iter(self)
-
-    def iteritems(self: TAccessorPath) -> Iterator[tuple[K, TAccessorPath]]:
-        """Return path's items."""
-        warnings.warn(
-            "'iteritems' method is deprecated. Use 'items' instead.",
-            DeprecationWarning,
-        )
-        return self.items()
-
     def items(self: TAccessorPath) -> Iterator[tuple[K, TAccessorPath]]:
         """Return path's items."""
         for key in self.accessor.keys(self.parts):
             yield key, self._make_child_relpath(key)
-
-    def content(self) -> Any:
-        warnings.warn(
-            "'content' method is deprecated. Use 'read_value' instead.",
-            DeprecationWarning,
-        )
-        return self.read_value()
 
     def get(self, key: K, default: Any = None) -> Any:
         """Return the value for key if key is in the path, else default."""
@@ -244,16 +209,6 @@ class AccessorPath(BasePath, Generic[N, K, V]):
             return self[key]
         except KeyError:
             return default
-
-    @contextmanager
-    def open(self) -> Any:
-        """Open the path."""
-        warnings.warn(
-            "'open' method is deprecated. Use 'read_value' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        yield self.read_value()
 
     def read_value(self) -> V:
         """Return the path's value."""
