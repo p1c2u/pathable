@@ -159,13 +159,13 @@ class AccessorPath(BasePath, Generic[N, K, V]):
             parts, separator=self.separator, accessor=self.accessor,
         )
 
-    def __floordiv__(self: TBasePath, key: Any) -> TBasePath:
+    def __floordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key appended."""
         if key not in self:
             raise KeyError(key)
         return self / key
 
-    def __rfloordiv__(self: TBasePath, key: Any) -> TBasePath:
+    def __rfloordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key prepended."""
         new = key / self
         if not new.exists():
