@@ -158,9 +158,24 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         except KeyError:
             return None
 
+        if isinstance(node, Mapping):
+            return {
+                'type': 'mapping',
+                'length': len(node),
+            }
+        if isinstance(node, list):
+            return {
+                'type': 'list',
+                'length': len(node),
+            }
+        try:
+            length = len(node)
+        except TypeError:
+            length = None
+
         return {
             'type': type(node),
-            'length': len(node),
+            'length': length,
         }
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
