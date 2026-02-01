@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
+import sys
 from typing import Any
 from typing import Generic
 from typing import TypeVar
@@ -37,7 +38,7 @@ class NodeAccessor(Generic[N, K, V]):
             return NotImplemented
         return self.node == other.node
 
-    def stat(self, parts: Sequence[K]) -> dict[str, Any]:
+    def stat(self, parts: Sequence[K]) -> Union[dict[str, Any], None]:
         raise NotImplementedError
 
     def keys(self, parts: Sequence[K]) -> Sequence[K]:
@@ -80,6 +81,19 @@ class NodeAccessor(Generic[N, K, V]):
 
 
 class PathAccessor(NodeAccessor[Path, str, bytes]):
+
+    def stat(self, parts: Sequence[str]) -> Union[dict[str, Any], None]:
+        subpath = self.node.joinpath(*parts)
+        # Avoid following symlinks (Python 3.10+)
+        if sys.version_info >= (3, 10):
+            stat = subpath.stat(follow_symlinks=False)
+        else:
+            stat  = subpath.stat()
+        return {
+            key: getattr(stat, key)
+            for key in dir(stat)
+            if key.startswith("st_")
+        }
 
     def keys(self, parts: Sequence[str]) -> Sequence[str]:
         subpath = Path(self.node, *parts)
@@ -137,6 +151,20 @@ class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, 
 
 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
+
+    def stat(self, parts: Sequence[LookupKey]) -> Union[dict[str, Any], None]:
+        node = self._get_node(self.node, pdeque(parts))
+        if isinstance(node, Mapping):
+            return {
+                'type': 'mapping',
+                'length': len(node),
+            }
+        if isinstance(node, list):
+            return {
+                'type': 'list',
+                'length': len(node),
+            }
+        return None
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
         node = self._get_node(self.node, pdeque(parts))
