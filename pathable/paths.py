@@ -1,10 +1,10 @@
 """Pathable paths module"""
-import warnings
 from collections.abc import Hashable
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 from typing import Any
 from typing import Generic
 from typing import Optional
@@ -15,6 +15,7 @@ from typing import Union
 
 from pathable.accessors import NodeAccessor
 from pathable.accessors import LookupAccessor, N, K, V
+from pathable.accessors import PathAccessor
 from pathable.parsers import SEPARATOR
 from pathable.parsers import parse_args
 from pathable.types import LookupKey
@@ -235,9 +236,44 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         """Return the path's value."""
         return self.accessor.read(self.parts)
 
+    def stat(self) -> Union[dict[str, Any], None]:
+        """Return metadata for the path, or None if it doesn't exist."""
+        return self.accessor.stat(self.parts)
+
+    @contextmanager
+    def open(self) -> Iterator[V]:
+        """Context manager that yields the current path's value.
+
+        This mirrors a file-like "open" API but works for any accessor.
+        """
+        yield self.read_value()
+
+
+class FilesystemPath(AccessorPath[Path, str, bytes]):
+    """Path for filesystem objects."""
+
+    @classmethod
+    def from_path(
+        cls: Type["FilesystemPath"],
+        path: Path,
+    ) -> "FilesystemPath":
+        """Public constructor for a Path-backed path."""
+        accessor = PathAccessor(path)
+        return cls(accessor)
+
 
 class LookupPath(AccessorPath[LookupNode, LookupKey, LookupValue]):
     """Path for object that supports __getitem__ lookups."""
+
+    @classmethod
+    def from_lookup(
+        cls: type["LookupPath"],
+        lookup: LookupNode,
+        *args: Any,
+        **kwargs: Any,
+    ) -> "LookupPath":
+        """Public constructor for a lookup-backed path."""
+        return cls._from_lookup(lookup, *args, **kwargs)
 
     @classmethod
     def _from_lookup(

@@ -1071,3 +1071,29 @@ class TestLookupPathOpen:
         assert resource.getitem_counter == 1
         assert result == p.read_value()
         assert resource.getitem_counter == 1
+
+
+class TestLookupPathFromLookup:
+    def test_from_lookup_matches_private_constructor(self):
+        resource = {"test1": {"test2": "test3"}}
+
+        p1 = LookupPath._from_lookup(resource, "test1")
+        p2 = LookupPath.from_lookup(resource, "test1")
+
+        assert p1 == p2
+        assert p1.read_value() == p2.read_value()
+
+
+class TestAccessorPathOpenAndStat:
+    def test_open_yields_read_value(self):
+        resource = {"test1": {"test2": "value"}}
+        p = LookupPath.from_lookup(resource, "test1")
+
+        with p.open() as value:
+            assert value == {"test2": "value"}
+
+    def test_stat_returns_none_for_missing(self):
+        resource = {"test1": {"test2": "value"}}
+        p = LookupPath.from_lookup(resource, "test1", "missing")
+
+        assert p.stat() is None
