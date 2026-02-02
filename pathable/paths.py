@@ -1,10 +1,10 @@
 """Pathable paths module"""
-import warnings
 from collections.abc import Hashable
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 from typing import Any
 from typing import Generic
 from typing import Optional
@@ -15,6 +15,7 @@ from typing import Union
 
 from pathable.accessors import NodeAccessor
 from pathable.accessors import LookupAccessor, N, K, V
+from pathable.accessors import PathAccessor
 from pathable.parsers import SEPARATOR
 from pathable.parsers import parse_args
 from pathable.types import LookupKey
@@ -32,9 +33,9 @@ class BasePath:
     separator: str = SEPARATOR
 
     def __init__(self, *args: Any, separator: Optional[str] = None):
-        parts = parse_args(list(args))
-        object.__setattr__(self, 'parts', parts)
         object.__setattr__(self, 'separator', separator or self.separator)
+        parts = parse_args(list(args), self.separator)
+        object.__setattr__(self, 'parts', parts)
 
     @classmethod
     def _from_parts(
@@ -59,13 +60,140 @@ class BasePath:
     def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
         parts = parse_args(args, self.separator)
         parts_joined = self.parts + parts
-        return self._from_parsed_parts(parts_joined, self.separator)
+        return self._clone_with_parts(parts_joined)
 
     def _make_child_relpath(self: TBasePath, part: Hashable) -> TBasePath:
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
         parts = self.parts + (part, )
-        return self._from_parsed_parts(parts, self.separator)
+        return self._clone_with_parts(parts)
+
+    def _clone_with_parts(self: TBasePath, parts: tuple[Hashable, ...]) -> TBasePath:
+        """Create a new instance of the same class with the given parts.
+
+        Subclasses like `AccessorPath` require extra constructor state (e.g. accessor).
+        This helper attempts to preserve that state.
+        """
+        return self._from_parsed_parts(parts, separator=self.separator)
+
+    def __fspath__(self) -> str:
+        return str(self)
+
+    def as_posix(self) -> str:
+        """Return the path as a POSIX path (always uses '/')."""
+        return "/".join(str(p) for p in self.parts)
+
+    @cached_property
+    def name(self) -> str:
+        """Final path component."""
+        if not self.parts:
+            return ""
+        return str(self.parts[-1])
+
+    @staticmethod
+    def _split_stem_suffix(name: str) -> tuple[str, str]:
+        # Mirrors pathlib semantics for suffix handling, including dotfiles.
+        if name in ("", ".", ".."):
+            return name, ""
+        dot = name.rfind(".")
+        if dot <= 0:
+            # no dot, or dotfile with no other suffix
+            if dot == 0 and "." not in name[1:]:
+                return name, ""
+            return name, ""
+        return name[:dot], name[dot:]
+
+    @cached_property
+    def suffix(self) -> str:
+        """Final component's last suffix, including the leading dot."""
+        stem, suffix = self._split_stem_suffix(self.name)
+        return suffix
+
+    @cached_property
+    def suffixes(self) -> list[str]:
+        """Final component's suffixes, each including the leading dot."""
+        name = self.name
+        if name in ("", ".", ".."):
+            return []
+        if name.startswith("."):
+            rest = name[1:]
+            if "." not in rest:
+                return []
+            name = rest
+        parts = name.split(".")
+        if len(parts) <= 1:
+            return []
+        return ["." + p for p in parts[1:]]
+
+    @cached_property
+    def stem(self) -> str:
+        """Final component without its last suffix."""
+        stem, _ = self._split_stem_suffix(self.name)
+        return stem
+
+    @cached_property
+    def parent(self: TBasePath) -> TBasePath:
+        """Logical parent path."""
+        if not self.parts:
+            return self
+        return self._clone_with_parts(self.parts[:-1])
+
+    @cached_property
+    def parents(self: TBasePath) -> tuple[TBasePath, ...]:
+        """Logical ancestors (like pathlib's `.parents`)."""
+        if not self.parts:
+            return ()
+        return tuple(
+            self._clone_with_parts(self.parts[: -i]) for i in range(1, len(self.parts) + 1)
+        )
+
+    def joinpath(self: TBasePath, *other: Any) -> TBasePath:
+        """Combine this path with one or more segments."""
+        return self._make_child(list(other))
+
+    def with_name(self: TBasePath, name: str) -> TBasePath:
+        """Return a new path with the final component replaced."""
+        if not self.parts:
+            raise ValueError("with_name() requires a non-empty path")
+        if not isinstance(name, str):
+            raise TypeError("name must be a str")
+        if not name:
+            raise ValueError("name must be non-empty")
+        if SEPARATOR in name:
+            raise ValueError("name must not contain path separator")
+        new_parts = self.parts[:-1] + (name,)
+        return self._clone_with_parts(new_parts)
+
+    def with_suffix(self: TBasePath, suffix: str) -> TBasePath:
+        """Return a new path with the final component's suffix changed."""
+        if not self.parts:
+            raise ValueError("with_suffix() requires a non-empty path")
+        if not isinstance(suffix, str):
+            raise TypeError("suffix must be a str")
+        if suffix and not suffix.startswith("."):
+            raise ValueError("Invalid suffix; must start with '.'")
+        name = self.name
+        if name in ("", ".", ".."):
+            raise ValueError("Invalid name for with_suffix()")
+        new_name = self.stem + suffix
+        return self.with_name(new_name)
+
+    def is_relative_to(self, *other: Any) -> bool:
+        """Return True if the path is relative to `other`."""
+        other_parts = parse_args(other)
+        if len(other_parts) > len(self.parts):
+            return False
+        return self.parts[: len(other_parts)] == other_parts
+
+    def relative_to(self: TBasePath, *other: Any) -> TBasePath:
+        """Return the relative path from `other` to self.
+
+        Raises ValueError if self is not under other.
+        """
+        other_parts = parse_args(other)
+        if not self.is_relative_to(*other_parts):
+            raise ValueError(f"{self!r} is not in the subpath of {BasePath._from_parsed_parts(other_parts, separator=self.separator)!r}")
+        return self._clone_with_parts(self.parts[len(other_parts) :])
 
     def __str__(self) -> str:
         return self.separator.join(self._cparts)
@@ -153,19 +281,8 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         object.__setattr__(instance, 'accessor', accessor)
         return instance
 
-    def _make_child(self: TAccessorPath, args: list[Any]) -> TAccessorPath:
-        parts = parse_args(args, self.separator)
-        parts_joined = self.parts + parts
-        return self._from_parsed_parts(
-            parts_joined, separator=self.separator, accessor=self.accessor,
-        )
-
-    def _make_child_relpath(
-        self: TAccessorPath, part: Hashable
-    ) -> TAccessorPath:
-        # This is an optimization used for dir walking.  `part` must be
-        # a single part relative to this path.
-        parts = self.parts + (part, )
+    def _clone_with_parts(self: TAccessorPath, parts: tuple[Hashable, ...]) -> TAccessorPath:
+        """Create a new instance of the same class with the given parts."""
         return self._from_parsed_parts(
             parts, separator=self.separator, accessor=self.accessor,
         )
@@ -235,9 +352,44 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         """Return the path's value."""
         return self.accessor.read(self.parts)
 
+    def stat(self) -> Union[dict[str, Any], None]:
+        """Return metadata for the path, or None if it doesn't exist."""
+        return self.accessor.stat(self.parts)
+
+    @contextmanager
+    def open(self) -> Iterator[V]:
+        """Context manager that yields the current path's value.
+
+        This mirrors a file-like "open" API but works for any accessor.
+        """
+        yield self.read_value()
+
+
+class FilesystemPath(AccessorPath[Path, str, bytes]):
+    """Path for filesystem objects."""
+
+    @classmethod
+    def from_path(
+        cls: Type["FilesystemPath"],
+        path: Path,
+    ) -> "FilesystemPath":
+        """Public constructor for a Path-backed path."""
+        accessor = PathAccessor(path)
+        return cls(accessor)
+
 
 class LookupPath(AccessorPath[LookupNode, LookupKey, LookupValue]):
     """Path for object that supports __getitem__ lookups."""
+
+    @classmethod
+    def from_lookup(
+        cls: type["LookupPath"],
+        lookup: LookupNode,
+        *args: Any,
+        **kwargs: Any,
+    ) -> "LookupPath":
+        """Public constructor for a lookup-backed path."""
+        return cls._from_lookup(lookup, *args, **kwargs)
 
     @classmethod
     def _from_lookup(
