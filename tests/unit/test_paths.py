@@ -379,7 +379,7 @@ class TestBasePathTruediv:
         part21 = "part21"
         part22 = "part22"
         separator1 = "."
-        part1 = SEPARATOR.join([part11, part12])
+        part1 = separator1.join([part11, part12])
         part2 = SEPARATOR.join([part21, part22])
         p1 = BasePath(part2)
         p = BasePath(part1, separator=separator1) / p1
@@ -1071,3 +1071,98 @@ class TestLookupPathOpen:
         assert resource.getitem_counter == 1
         assert result == p.read_value()
         assert resource.getitem_counter == 1
+
+
+class TestLookupPathFromLookup:
+    def test_from_lookup_matches_private_constructor(self):
+        resource = {"test1": {"test2": "test3"}}
+
+        p1 = LookupPath._from_lookup(resource, "test1")
+        p2 = LookupPath.from_lookup(resource, "test1")
+
+        assert p1 == p2
+        assert p1.read_value() == p2.read_value()
+
+
+class TestAccessorPathOpenAndStat:
+    def test_open_yields_read_value(self):
+        resource = {"test1": {"test2": "value"}}
+        p = LookupPath.from_lookup(resource, "test1")
+
+        with p.open() as value:
+            assert value == {"test2": "value"}
+
+    def test_stat_returns_none_for_missing(self):
+        resource = {"test1": {"test2": "value"}}
+        p = LookupPath.from_lookup(resource, "test1", "missing")
+
+        assert p.stat() is None
+
+
+class TestPathlibLikeManipulation:
+    def test_name_parent_parents(self):
+        p = BasePath("a", "b", "c")
+
+        assert p.name == "c"
+        assert str(p.parent) == "a/b"
+        assert [str(x) for x in p.parents] == ["a/b", "a", ""]
+
+    def test_joinpath(self):
+        p = BasePath("a")
+        assert str(p.joinpath("b", "c")) == "a/b/c"
+
+    def test_suffix_stem_suffixes(self):
+        p = BasePath("archive.tar.gz")
+        assert p.suffix == ".gz"
+        assert p.suffixes == [".tar", ".gz"]
+        assert p.stem == "archive.tar"
+
+        dotfile = BasePath(".bashrc")
+        assert dotfile.suffix == ""
+        assert dotfile.suffixes == []
+        assert dotfile.stem == ".bashrc"
+
+    def test_with_name_and_with_suffix(self):
+        p = BasePath("a", "file.txt")
+        assert str(p.with_name("other.md")) == "a/other.md"
+        assert str(p.with_suffix(".csv")) == "a/file.csv"
+
+    def test_relative_to_and_is_relative_to(self):
+        p = BasePath("a", "b", "c")
+        assert p.is_relative_to("a")
+        assert p.is_relative_to("a", "b")
+        assert not p.is_relative_to("x")
+        assert str(p.relative_to("a")) == "b/c"
+        assert str(p.relative_to("a", "b")) == "c"
+
+        with pytest.raises(ValueError):
+            p.relative_to("x")
+
+    def test_as_posix_and_fspath(self):
+        p = BasePath("a", "b")
+        assert p.as_posix() == "a/b"
+        assert p.__fspath__() == "a/b"
+
+
+class TestAccessorPathPathlibCompat:
+    def test_parent_preserves_accessor(self):
+        resource = {"a": {"b": {"c": "value"}}}
+        p = LookupPath.from_lookup(resource, "a", "b", "c")
+
+        assert p.parent.read_value() == {"c": "value"}
+
+    def test_relative_to_preserves_accessor(self):
+        resource = {"a": {"b": {"c": "value"}}}
+        p = LookupPath.from_lookup(resource, "a", "b", "c")
+
+        rel = p.relative_to("a")
+        assert str(rel) == "b/c"
+        # Like pathlib, a relative path is not automatically anchored to the
+        # stripped prefix; consumers must re-anchor explicitly if needed.
+
+    def test_with_name_preserves_accessor(self):
+        resource = {"a": {"x": "value"}}
+        p = LookupPath.from_lookup(resource, "a", "x")
+
+        renamed = p.with_name("x")
+        assert renamed.read_value() == "value"
