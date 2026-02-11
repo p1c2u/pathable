@@ -95,6 +95,12 @@ class TestPathAccessorStat:
         assert result is not None
         # On 3.10+, should use stat(follow_symlinks=False)
         # which means we get the symlink's own stat, not the target's
+        # Verify it's the symlink by checking the size doesn't match target
+        target_stat = target_file.stat()
+        link_stat = link_file.lstat()
+        assert result["st_size"] == link_stat.st_size
+        # For symlinks, size should be small (path length), not target size
+        assert result["st_size"] != target_stat.st_size
 
     @pytest.mark.skipif(
         sys.version_info >= (3, 10), reason="lstat used on Python < 3.10"
@@ -112,6 +118,12 @@ class TestPathAccessorStat:
 
         assert result is not None
         # On <3.10, should use lstat()
+        # Verify it's the symlink by checking the size doesn't match target
+        target_stat = target_file.stat()
+        link_stat = link_file.lstat()
+        assert result["st_size"] == link_stat.st_size
+        # For symlinks, size should be small (path length), not target size
+        assert result["st_size"] != target_stat.st_size
 
 
 class TestPathAccessorKeys:
