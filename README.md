@@ -19,7 +19,7 @@ It’s especially handy when you want to:
 * Intuitive path-based navigation for nested data (e.g., dicts/lists)
 * Pluggable accessor layer for custom backends
 * Pythonic, chainable API for concise and readable code
-* Cached lookup accessor for repeated reads of the same tree
+* Per-instance cached lookup accessor for repeated reads of the same tree
 
 ## Quickstart
 

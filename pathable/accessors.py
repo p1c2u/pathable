@@ -2,7 +2,6 @@
 from collections.abc import Hashable
 from collections.abc import Mapping
 from collections.abc import Sequence
-from functools import lru_cache
 from pathlib import Path
 import sys
 from typing import Any
@@ -133,24 +132,21 @@ class SubscriptableAccessor(NodeAccessor[Union[Subscriptable[SK, SV], SV], SK, S
 
 
 class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, CSV]):
-
-    _node_refs: dict[int, Union[Subscriptable[CSK, CSV], CSV]] = {}
-
     def __init__(self, node: Union[Subscriptable[CSK, CSV], CSV]):
         super().__init__(node)
 
-        self._node_refs[id(node)] = node
+        # Per-instance cache: avoids global strong references and id-reuse hazards.
+        self._cache: dict[tuple[CSK, ...], CSV] = {}
 
     def read(self, parts: Sequence[CSK]) -> CSV:
-        self._node_refs[id(self.node)] = self.node
-        return self._read_cached(id(self.node), pdeque(parts))
-
-    @classmethod
-    @lru_cache
-    def _read_cached(cls, node_id: int, parts: PDeque[CSK]) -> CSV:
-        node: Union[Subscriptable[CSK, CSV], CSV] = cls._node_refs[node_id]
-        node = cls._get_node(node, pdeque(parts))
-        return cls._read_node(node)
+        key = tuple(parts)
+        try:
+            return self._cache[key]
+        except KeyError:
+            node = self._get_node(self.node, pdeque(parts))
+            value = self._read_node(node)
+            self._cache[key] = value
+            return value
 
 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
