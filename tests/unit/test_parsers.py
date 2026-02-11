@@ -21,7 +21,9 @@ class TestParseParts:
 
         result = parse_parts(parts, self.separator)
 
-        assert result == ["test", ]
+        assert result == [
+            "test",
+        ]
 
     def test_simple(self):
         parts = ["test", "test1", "test2"]
@@ -79,7 +81,7 @@ class TestParseArgs:
 
         result = parse_args(args, self.separator)
 
-        assert result == ("test", )
+        assert result == ("test",)
 
     def test_string_many(self):
         args = ["test", "test2"]
@@ -93,7 +95,7 @@ class TestParseArgs:
 
         result = parse_args(args, self.separator)
 
-        assert result == ("test", )
+        assert result == ("test",)
 
     def test_invalid_part(self):
         args = [(2,), (3,)]

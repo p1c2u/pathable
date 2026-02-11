@@ -26,7 +26,10 @@ jobs:
 
       - name: Get full Python version
         id: full-python-version
-        run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
+        shell: bash
+        run: |
+          version="$(python -c 'import sys; print("-".join(map(str, sys.version_info)))')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up poetry
         uses: Gr1N/setup-poetry@v9
@@ -50,6 +53,12 @@ jobs:
 
       - name: Install dependencies
         run: poetry install
+
+      - name: Format check (black)
+        run: poetry run black --check pathable tests
+
+      - name: Import order check (isort)
+        run: poetry run isort --check-only --filter-files pathable tests
 
       - name: Test
         env:

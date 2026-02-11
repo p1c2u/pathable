@@ -1,4 +1,5 @@
 """Pathable paths module"""
+
 from collections.abc import Hashable
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -13,9 +14,12 @@ from typing import Type
 from typing import TypeVar
 from typing import Union
 
+from pathable.accessors import K
+from pathable.accessors import LookupAccessor
+from pathable.accessors import N
 from pathable.accessors import NodeAccessor
-from pathable.accessors import LookupAccessor, N, K, V
 from pathable.accessors import PathAccessor
+from pathable.accessors import V
 from pathable.parsers import SEPARATOR
 from pathable.parsers import parse_args
 from pathable.types import LookupKey
@@ -26,30 +30,38 @@ from pathable.types import LookupValue
 TBasePath = TypeVar("TBasePath", bound="BasePath")
 TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath[Any, Any, Any]")
 
+
 @dataclass(frozen=True, init=False)
 class BasePath:
     """Base path."""
+
     parts: tuple[Hashable, ...]
     separator: str = SEPARATOR
 
     def __init__(self, *args: Any, separator: Optional[str] = None):
-        object.__setattr__(self, 'separator', separator or self.separator)
+        object.__setattr__(self, "separator", separator or self.separator)
         parts = parse_args(list(args), self.separator)
-        object.__setattr__(self, 'parts', parts)
+        object.__setattr__(self, "parts", parts)
 
     @classmethod
     def _from_parts(
-        cls: Type[TBasePath], args: Sequence[Any], separator: Optional[str] = None
+        cls: Type[TBasePath],
+        args: Sequence[Any],
+        separator: Optional[str] = None,
     ) -> TBasePath:
         return cls(*args, separator=separator)
 
     @classmethod
     def _from_parsed_parts(
-        cls: Type[TBasePath], parts: tuple[Hashable, ...], separator: Optional[str] = None,
+        cls: Type[TBasePath],
+        parts: tuple[Hashable, ...],
+        separator: Optional[str] = None,
     ) -> "TBasePath":
         instance = cls.__new__(cls)
-        object.__setattr__(instance, 'parts', parts)
-        object.__setattr__(instance, 'separator', separator or instance.separator)
+        object.__setattr__(instance, "parts", parts)
+        object.__setattr__(
+            instance, "separator", separator or instance.separator
+        )
         return instance
 
     @cached_property
@@ -78,10 +90,12 @@ class BasePath:
     def _make_child_relpath(self: TBasePath, part: Hashable) -> TBasePath:
         # This is an optimization used for dir walking.  `part` must be
         # a single part relative to this path.
-        parts = self.parts + (part, )
+        parts = self.parts + (part,)
         return self._clone_with_parts(parts)
 
-    def _clone_with_parts(self: TBasePath, parts: tuple[Hashable, ...]) -> TBasePath:
+    def _clone_with_parts(
+        self: TBasePath, parts: tuple[Hashable, ...]
+    ) -> TBasePath:
         """Create a new instance of the same class with the given parts.
 
         Subclasses like `AccessorPath` require extra constructor state (e.g. accessor).
@@ -157,7 +171,8 @@ class BasePath:
         if not self.parts:
             return ()
         return tuple(
-            self._clone_with_parts(self.parts[: -i]) for i in range(1, len(self.parts) + 1)
+            self._clone_with_parts(self.parts[:-i])
+            for i in range(1, len(self.parts) + 1)
         )
 
     def joinpath(self: TBasePath, *other: Any) -> TBasePath:
@@ -205,7 +220,9 @@ class BasePath:
         """
         other_parts = parse_args(other, sep=self.separator)
         if not self.is_relative_to(*other_parts):
-            raise ValueError(f"{self!r} is not in the subpath of {BasePath._from_parsed_parts(other_parts, separator=self.separator)!r}")
+            raise ValueError(
+                f"{self!r} is not in the subpath of {BasePath._from_parsed_parts(other_parts, separator=self.separator)!r}"
+            )
         return self._clone_with_parts(self.parts[len(other_parts) :])
 
     def __str__(self) -> str:
@@ -229,7 +246,9 @@ class BasePath:
 
     def __rtruediv__(self: TBasePath, key: Hashable) -> TBasePath:
         try:
-            return self._from_parts((key, ) + self.parts, separator=self.separator)
+            return self._from_parts(
+                (key,) + self.parts, separator=self.separator
+            )
         except TypeError:
             return NotImplemented
 
@@ -241,31 +260,49 @@ class BasePath:
     def __lt__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) < (other.separator, other._cmp_parts)
+        return (self.separator, self._cmp_parts) < (
+            other.separator,
+            other._cmp_parts,
+        )
 
     def __le__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) <= (other.separator, other._cmp_parts)
+        return (self.separator, self._cmp_parts) <= (
+            other.separator,
+            other._cmp_parts,
+        )
 
     def __gt__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) > (other.separator, other._cmp_parts)
+        return (self.separator, self._cmp_parts) > (
+            other.separator,
+            other._cmp_parts,
+        )
 
     def __ge__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) >= (other.separator, other._cmp_parts)
+        return (self.separator, self._cmp_parts) >= (
+            other.separator,
+            other._cmp_parts,
+        )
 
 
 class AccessorPath(BasePath, Generic[N, K, V]):
     """Path for object that can be read by accessor."""
+
     parts: tuple[K, ...]
     accessor: NodeAccessor[N, K, V]
 
-    def __init__(self, accessor: NodeAccessor[N, K, V], *args: Any, separator: Optional[str] = None):
-        object.__setattr__(self, 'accessor', accessor)
+    def __init__(
+        self,
+        accessor: NodeAccessor[N, K, V],
+        *args: Any,
+        separator: Optional[str] = None,
+    ):
+        object.__setattr__(self, "accessor", accessor)
         super().__init__(*args, separator=separator)
 
     @classmethod
@@ -289,21 +326,27 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         if accessor is None:
             raise ValueError("accessor must be provided")
         instance = cls.__new__(cls)
-        object.__setattr__(instance, 'parts', parts)
-        object.__setattr__(instance, 'separator', separator or instance.separator)
-        object.__setattr__(instance, 'accessor', accessor)
+        object.__setattr__(instance, "parts", parts)
+        object.__setattr__(
+            instance, "separator", separator or instance.separator
+        )
+        object.__setattr__(instance, "accessor", accessor)
         return instance
 
-    def _clone_with_parts(self: TAccessorPath, parts: tuple[Hashable, ...]) -> TAccessorPath:
+    def _clone_with_parts(
+        self: TAccessorPath, parts: tuple[Hashable, ...]
+    ) -> TAccessorPath:
         """Create a new instance of the same class with the given parts."""
         return self._from_parsed_parts(
-            parts, separator=self.separator, accessor=self.accessor,
+            parts,
+            separator=self.separator,
+            accessor=self.accessor,
         )
 
     def __rtruediv__(self: TAccessorPath, key: Hashable) -> TAccessorPath:
         try:
             return self._from_parts(
-                (key, ) + self.parts,
+                (key,) + self.parts,
                 separator=self.separator,
                 accessor=self.accessor,
             )

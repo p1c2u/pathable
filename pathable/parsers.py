@@ -1,4 +1,5 @@
 """Pathable parsers module"""
+
 from collections.abc import Hashable
 from typing import Any
 from typing import Sequence
@@ -8,7 +9,9 @@ from pathable.types import ParsePart
 SEPARATOR = "/"
 
 
-def parse_parts(parts: list[Hashable], sep: str = SEPARATOR) -> list[ParsePart]:
+def parse_parts(
+    parts: list[Hashable], sep: str = SEPARATOR
+) -> list[ParsePart]:
     """Parse (filter and split) path parts."""
     parsed: list[ParsePart] = []
     it = reversed(parts)
@@ -35,7 +38,9 @@ def parse_parts(parts: list[Hashable], sep: str = SEPARATOR) -> list[ParsePart]:
     return parsed
 
 
-def parse_args(args: Sequence[Any], sep: str = SEPARATOR) -> tuple[ParsePart, ...]:
+def parse_args(
+    args: Sequence[Any], sep: str = SEPARATOR
+) -> tuple[ParsePart, ...]:
     """Canonicalize path constructor arguments."""
     parts: list[Hashable] = []
     for a in args:
