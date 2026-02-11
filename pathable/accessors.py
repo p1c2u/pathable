@@ -239,7 +239,12 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     def len(self, parts: Sequence[LookupKey]) -> int:
         node = self._get_node(self.node, pdeque(parts))
-        return len(node)
+        # Define length as the number of child paths (consistent with keys()).
+        if isinstance(node, Mapping):
+            return len(node)
+        if isinstance(node, list):
+            return len(node)
+        return 0
 
     @classmethod
     def _read_node(cls, node: LookupNode) -> LookupValue:

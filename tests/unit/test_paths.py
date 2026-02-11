@@ -1034,7 +1034,7 @@ class TestLookupPathLen:
 
         result = len(p)
 
-        assert result == 5
+        assert result == 0
 
     def test_single(self):
         resource = {"test1": "test2"}
