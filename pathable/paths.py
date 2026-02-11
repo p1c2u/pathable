@@ -159,7 +159,7 @@ class BasePath:
             raise TypeError("name must be a str")
         if not name:
             raise ValueError("name must be non-empty")
-        if SEPARATOR in name:
+        if self.separator in name:
             raise ValueError("name must not contain path separator")
         new_parts = self.parts[:-1] + (name,)
         return self._clone_with_parts(new_parts)
@@ -180,7 +180,7 @@ class BasePath:
 
     def is_relative_to(self, *other: Any) -> bool:
         """Return True if the path is relative to `other`."""
-        other_parts = parse_args(other)
+        other_parts = parse_args(other, sep=self.separator)
         if len(other_parts) > len(self.parts):
             return False
         return self.parts[: len(other_parts)] == other_parts
@@ -190,7 +190,7 @@ class BasePath:
 
         Raises ValueError if self is not under other.
         """
-        other_parts = parse_args(other)
+        other_parts = parse_args(other, sep=self.separator)
         if not self.is_relative_to(*other_parts):
             raise ValueError(f"{self!r} is not in the subpath of {BasePath._from_parsed_parts(other_parts, separator=self.separator)!r}")
         return self._clone_with_parts(self.parts[len(other_parts) :])
@@ -216,7 +216,7 @@ class BasePath:
 
     def __rtruediv__(self: TBasePath, key: Hashable) -> TBasePath:
         try:
-            return self._from_parts((key, ) + self.parts)
+            return self._from_parts((key, ) + self.parts, separator=self.separator)
         except TypeError:
             return NotImplemented
 

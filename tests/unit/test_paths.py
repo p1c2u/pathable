@@ -492,6 +492,14 @@ class TestBasePathRtruediv:
         with pytest.raises(TypeError):
             [] / BasePath()
 
+    def test_preserves_separator(self):
+        p = BasePath("b.c", separator=".")
+
+        result = "a" / p
+
+        assert result.parts == ("a", "b", "c")
+        assert result.separator == "."
+
 
 class TestBasePathEq:
     @pytest.mark.parametrize(
@@ -1127,6 +1135,12 @@ class TestPathlibLikeManipulation:
         assert str(p.with_name("other.md")) == "a/other.md"
         assert str(p.with_suffix(".csv")) == "a/file.csv"
 
+    def test_with_name_respects_separator(self):
+        p = BasePath("a", "b", separator=".")
+
+        with pytest.raises(ValueError):
+            p.with_name("c.d")
+
     def test_relative_to_and_is_relative_to(self):
         p = BasePath("a", "b", "c")
         assert p.is_relative_to("a")
@@ -1134,6 +1148,19 @@ class TestPathlibLikeManipulation:
         assert not p.is_relative_to("x")
         assert str(p.relative_to("a")) == "b/c"
         assert str(p.relative_to("a", "b")) == "c"
+
+        with pytest.raises(ValueError):
+            p.relative_to("x")
+
+    def test_relative_to_and_is_relative_to_custom_separator(self):
+        p = BasePath("a.b.c", separator=".")
+
+        assert p.is_relative_to("a")
+        assert p.is_relative_to("a.b")
+        assert not p.is_relative_to("a/b")
+
+        assert str(p.relative_to("a")) == "b.c"
+        assert str(p.relative_to("a.b")) == "c"
 
         with pytest.raises(ValueError):
             p.relative_to("x")
