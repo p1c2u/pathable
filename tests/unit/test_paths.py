@@ -1,7 +1,7 @@
-from collections.abc import Mapping
 from collections.abc import Hashable
-from typing import Any
+from collections.abc import Mapping
 from types import GeneratorType
+from typing import Any
 from typing import Union
 
 import pytest
@@ -13,10 +13,14 @@ from pathable.paths import BasePath
 from pathable.paths import LookupPath
 
 
-class MockAccessor(NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, Any]):
+class MockAccessor(
+    NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, Any]
+):
     """Mock accessor."""
 
-    def __init__(self, *children_keys: str, content: Any = None, exists: bool = False):
+    def __init__(
+        self, *children_keys: str, content: Any = None, exists: bool = False
+    ):
         super().__init__(None)
         self._children_keys = children_keys
         self._content = content
@@ -28,7 +32,9 @@ class MockAccessor(NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, An
     def len(self, parts: list[Hashable]) -> int:
         return len(self._children_keys)
 
-    def read(self, parts: list[Hashable]) -> Union[Mapping[Hashable, Any], Any]:
+    def read(
+        self, parts: list[Hashable]
+    ) -> Union[Mapping[Hashable, Any], Any]:
         return self._content
 
 
@@ -69,18 +75,14 @@ class TestBasePathInit:
         part = "part"
         p = BasePath(part)
 
-        assert p.parts == (
-            part,
-        )
+        assert p.parts == (part,)
         assert p.separator == SEPARATOR
 
     def test_part_binary(self):
         part = b"part"
         p = BasePath(part)
 
-        assert p.parts == (
-            "part",
-        )
+        assert p.parts == ("part",)
         assert p.separator == SEPARATOR
 
     def test_part_binary_many(self):
@@ -104,9 +106,7 @@ class TestBasePathInit:
         p1 = BasePath(part)
         p = BasePath(p1)
 
-        assert p.parts == (
-            part,
-        )
+        assert p.parts == (part,)
         assert p.separator == SEPARATOR
 
     def test_part_path_many(self):
@@ -153,7 +153,9 @@ class TestBasePathStr:
 
     def test_cparts_cached(self):
         part = MockPart("part1")
-        args = [part, ]
+        args = [
+            part,
+        ]
         separator = ","
         p = BasePath(*args, separator=separator)
 
@@ -217,7 +219,9 @@ class TestBasePathHash:
 
     def test_cparts_cached(self):
         part = MockPart("part1")
-        args = [part, ]
+        args = [
+            part,
+        ]
         separator = ","
         p = BasePath(*args, separator=separator)
 
@@ -235,7 +239,6 @@ class TestBasePathHash:
         assert len({p1, p2}) == 2
         assert {p1: 1, p2: 2}[p1] == 1
         assert {p1: 1, p2: 2}[p2] == 2
-
 
 
 class TestBasePathMakeChild:
@@ -283,7 +286,7 @@ class TestBasePathMakeChildRelPath:
         part = "part1"
         p = base_path._make_child_relpath(part)
 
-        assert p.parts == (part, )
+        assert p.parts == (part,)
         assert p.separator == SEPARATOR
 
 
@@ -306,13 +309,13 @@ class TestBasePathTruediv:
             [
                 "",
                 "part1",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
                 "part1",
                 "",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
@@ -330,13 +333,13 @@ class TestBasePathTruediv:
             [
                 b"",
                 "part1",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
                 b"part1",
                 "",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
@@ -421,13 +424,13 @@ class TestBasePathRtruediv:
             [
                 "",
                 "part1",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
                 "part1",
                 "",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
@@ -445,13 +448,13 @@ class TestBasePathRtruediv:
             [
                 b"",
                 "part1",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
                 b"part1",
                 "",
-                ("part1", ),
+                ("part1",),
                 SEPARATOR,
             ],
             [
@@ -826,10 +829,21 @@ class TestLookupPathGetItem:
 
 
 class TestLookupPathReadValue:
-    @pytest.mark.parametrize("resource,args,expected", [
-        ({"test1": {"test2": {"test3": "testvalue"}}}, ("test1/test2/test3", ), "testvalue"),
-        ({"test1": [{}, {"test3": "testvalue"}]}, ("test1", 1, "test3"), "testvalue"),
-    ])
+    @pytest.mark.parametrize(
+        "resource,args,expected",
+        [
+            (
+                {"test1": {"test2": {"test3": "testvalue"}}},
+                ("test1/test2/test3",),
+                "testvalue",
+            ),
+            (
+                {"test1": [{}, {"test3": "testvalue"}]},
+                ("test1", 1, "test3"),
+                "testvalue",
+            ),
+        ],
+    )
     def test_valid(self, resource, args, expected):
         p = LookupPath._from_lookup(resource, *args)
 
@@ -837,10 +851,16 @@ class TestLookupPathReadValue:
 
         assert result == expected
 
-    @pytest.mark.parametrize("resource,args", [
-        ({"test1": {"test2": {"test3": "testvalue"}}}, ("test1/test2/test4", )),
-        ({"test1": [{}, {"test3": "testvalue"}]}, ("test1", 0, "test3")),
-    ])
+    @pytest.mark.parametrize(
+        "resource,args",
+        [
+            (
+                {"test1": {"test2": {"test3": "testvalue"}}},
+                ("test1/test2/test4",),
+            ),
+            ({"test1": [{}, {"test3": "testvalue"}]}, ("test1", 0, "test3")),
+        ],
+    )
     def test_invalid(self, resource, args):
         p = LookupPath._from_lookup(resource, *args)
 
@@ -873,12 +893,12 @@ class TestLookupPathGet:
             [
                 {"test1": "test2"},
                 "test1",
-                'test2',
+                "test2",
             ],
             [
                 {"test1": {"test2": "test3"}},
                 "test1",
-                {'test2': 'test3'},
+                {"test2": "test3"},
             ],
         ),
     )
@@ -888,6 +908,7 @@ class TestLookupPathGet:
         result = p.get(key)
 
         assert result == expected
+
 
 class TestLookupPathExists:
     def test_non_existing_key(self):
@@ -961,6 +982,7 @@ class TestLookupPathFloorDiv:
         result = p // key
 
         assert result == expected
+
 
 class TestLookupPathRfloorDiv:
 

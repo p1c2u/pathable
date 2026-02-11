@@ -1,4 +1,5 @@
 """Pathable module"""
+
 from pathable.accessors import NodeAccessor
 from pathable.accessors import PathAccessor
 from pathable.paths import AccessorPath

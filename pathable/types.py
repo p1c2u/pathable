@@ -1,4 +1,5 @@
 """Pathable types module"""
+
 from typing import Any
 from typing import Union
 

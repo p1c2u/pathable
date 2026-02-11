@@ -39,6 +39,7 @@ def test_lookuppath_cache_is_not_shared_between_instances() -> None:
     assert p2.read_value() == value
     assert resource.getitem_counter == 2
 
+
 def test_lookup_accessor_disable_cache_reads_each_time() -> None:
     resource = CounterDict({"a": {"b": "value"}})
     path = LookupPath.from_lookup(resource, "a/b")
@@ -51,6 +52,7 @@ def test_lookup_accessor_disable_cache_reads_each_time() -> None:
 
     assert resource.getitem_counter == 2
 
+
 def test_lookup_accessor_clear_cache_forces_reread() -> None:
     resource = CounterDict({"a": {"b": "value"}})
     path = LookupPath.from_lookup(resource, "a/b")
@@ -61,6 +63,7 @@ def test_lookup_accessor_clear_cache_forces_reread() -> None:
     path.accessor.clear_cache()
     path.read_value()
     assert resource.getitem_counter == 2
+
 
 def test_lookup_accessor_lru_eviction_respects_maxsize() -> None:
     resource = CounterDict({"a": {"b": "value"}, "x": {"y": "value"}})

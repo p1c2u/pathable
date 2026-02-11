@@ -1,31 +1,32 @@
 """Pathable accessors module"""
+
+import sys
 from collections import OrderedDict
 from collections.abc import Hashable
 from collections.abc import Mapping
 from collections.abc import Sequence
 from pathlib import Path
-import sys
 from typing import Any
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
 from typing import Union
 
-from pyrsistent import pdeque
 from pyrsistent import PDeque
+from pyrsistent import pdeque
 
 from pathable.protocols import Subscriptable
 from pathable.types import LookupKey
-from pathable.types import LookupValue
 from pathable.types import LookupNode
+from pathable.types import LookupValue
 
-K = TypeVar('K', bound=Hashable, contravariant=True)
-V = TypeVar('V', covariant=True)
-N = TypeVar('N')
-SK = TypeVar('SK', bound=Hashable, contravariant=True)
-SV = TypeVar('SV', covariant=True)
-CSK = TypeVar('CSK', bound=Hashable, contravariant=True)
-CSV = TypeVar('CSV', covariant=True)
+K = TypeVar("K", bound=Hashable, contravariant=True)
+V = TypeVar("V", covariant=True)
+N = TypeVar("N")
+SK = TypeVar("SK", bound=Hashable, contravariant=True)
+SV = TypeVar("SV", covariant=True)
+CSK = TypeVar("CSK", bound=Hashable, contravariant=True)
+CSV = TypeVar("CSV", covariant=True)
 
 
 class NodeAccessor(Generic[N, K, V]):
@@ -127,17 +128,23 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         return subnode
 
 
-class SubscriptableAccessor(NodeAccessor[Union[Subscriptable[SK, SV], SV], SK, SV], Generic[SK, SV]):
+class SubscriptableAccessor(
+    NodeAccessor[Union[Subscriptable[SK, SV], SV], SK, SV], Generic[SK, SV]
+):
     """Accessor for subscriptable content."""
 
     @classmethod
-    def _get_subnode(cls, node: Union[Subscriptable[SK, SV], SV], part: SK) -> Union[Subscriptable[SK, SV], SV]:
+    def _get_subnode(
+        cls, node: Union[Subscriptable[SK, SV], SV], part: SK
+    ) -> Union[Subscriptable[SK, SV], SV]:
         if not isinstance(node, Subscriptable):
             raise KeyError
         return node[part]
 
 
-class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, CSV]):
+class CachedSubscriptableAccessor(
+    SubscriptableAccessor[CSK, CSV], Generic[CSK, CSV]
+):
     def __init__(self, node: Union[Subscriptable[CSK, CSV], CSV]):
         super().__init__(node)
 
@@ -204,13 +211,13 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
         if isinstance(node, Mapping):
             return {
-                'type': 'mapping',
-                'length': len(node),
+                "type": "mapping",
+                "length": len(node),
             }
         if isinstance(node, list):
             return {
-                'type': 'list',
-                'length': len(node),
+                "type": "list",
+                "length": len(node),
             }
         try:
             length = len(node)
@@ -218,8 +225,8 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
             length = None
 
         return {
-            'type': type(node),
-            'length': length,
+            "type": type(node),
+            "length": length,
         }
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
