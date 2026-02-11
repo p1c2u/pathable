@@ -114,6 +114,13 @@ Notes on parsing:
 * A segment like `"a/b"` is split into parts using the separator.
 * `None` segments are ignored.
 * `"."` segments are ignored (relative no-op).
+* Operations like `relative_to()` and `is_relative_to()` also respect the instance separator.
+
+Equality and ordering:
+
+* `BasePath` equality, hashing, and ordering are all based on both `separator` and `parts`.
+* Ordering is separator-sensitive and deterministic, even when parts mix types (e.g. ints and strings).
+* Path parts are type-sensitive (`0` is not equal to `"0"`).
 
 ## Installation
 

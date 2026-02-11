@@ -195,25 +195,25 @@ class TestBasePathHash:
     def test_empty(self):
         p = BasePath()
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_single(self):
         p = BasePath("part1")
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_double(self):
         args = ["part1", "part2"]
         p = BasePath(*args)
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_separator(self):
         args = ["part1", "part2"]
         separator = ","
         p = BasePath(*args, separator=separator)
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_cparts_cached(self):
         part = MockPart("part1")
@@ -221,10 +221,20 @@ class TestBasePathHash:
         separator = ","
         p = BasePath(*args, separator=separator)
 
-        assert hash(p) == hash(tuple(p._cparts))
-        assert part.str_counter == 1
-        assert hash(p) == hash(tuple(p._cparts))
-        assert part.str_counter == 1
+        # Hashing does not stringify parts.
+        assert part.str_counter == 0
+        assert hash(p) == hash((p.separator, p.parts))
+        assert part.str_counter == 0
+        assert hash(p) == hash((p.separator, p.parts))
+        assert part.str_counter == 0
+
+    def test_separator_part_of_hash(self):
+        p1 = BasePath("a", separator="/")
+        p2 = BasePath("a", separator=".")
+        assert p1 != p2
+        assert len({p1, p2}) == 2
+        assert {p1: 1, p2: 2}[p1] == 1
+        assert {p1: 1, p2: 2}[p2] == 2
 
 
 
@@ -524,6 +534,12 @@ class TestBasePathEq:
 
         assert result is False
 
+    def test_type_sensitive_parts(self):
+        assert BasePath(0) != BasePath("0")
+
+    def test_separator_part_of_equality(self):
+        assert BasePath("a", separator="/") != BasePath("a", separator=".")
+
 
 class TestBasePathLt:
     @pytest.mark.parametrize(
@@ -549,6 +565,43 @@ class TestBasePathLt:
     def test_type_not_implemented(self):
         with pytest.raises(TypeError):
             BasePath() < []
+
+    def test_mixed_type_ordering_is_deterministic(self):
+        # Ordering is based on (separator, type-aware cmp key).
+        # This locks in the current rule that `int` parts sort before `str`
+        # parts when their string forms are the same.
+        assert BasePath(0) < BasePath("0")
+        assert not (BasePath("0") < BasePath(0))
+
+    def test_separator_affects_ordering(self):
+        # Separator is compared before parts.
+        assert BasePath("a", separator=".") < BasePath("a", separator="/")
+
+    def test_type_identifier_includes_module(self):
+        # Two distinct types may share the same __qualname__.
+        # Ordering must remain deterministic and distinguish them.
+        class Same:
+            __module__ = "module_a"
+
+            def __str__(self) -> str:
+                return "x"
+
+        SameA = Same
+
+        class Same:
+            __module__ = "module_b"
+
+            def __str__(self) -> str:
+                return "x"
+
+        SameB = Same
+
+        root = AccessorPath(MockAccessor())
+        p1 = root._make_child_relpath(SameA())
+        p2 = root._make_child_relpath(SameB())
+
+        assert p1 != p2
+        assert (p1 < p2) ^ (p2 < p1)
 
 
 class TestBasePathLe:
