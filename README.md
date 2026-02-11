@@ -118,9 +118,9 @@ Notes on parsing:
 
 Equality and ordering:
 
-* `BasePath` equality and hashing are based on both `separator` and `parts`.
+* `BasePath` equality, hashing, and ordering are all based on both `separator` and `parts`.
+* Ordering is separator-sensitive and deterministic, even when parts mix types (e.g. ints and strings).
 * Path parts are type-sensitive (`0` is not equal to `"0"`).
-* Ordering is deterministic even when parts mix types (e.g. ints and strings).
 
 ## Installation
 
