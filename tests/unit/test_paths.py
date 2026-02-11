@@ -564,6 +564,17 @@ class TestBasePathLt:
         with pytest.raises(TypeError):
             BasePath() < []
 
+    def test_mixed_type_ordering_is_deterministic(self):
+        # Ordering is based on (separator, type-aware cmp key).
+        # This locks in the current rule that `int` parts sort before `str`
+        # parts when their string forms are the same.
+        assert BasePath(0) < BasePath("0")
+        assert not (BasePath("0") < BasePath(0))
+
+    def test_separator_affects_ordering(self):
+        # Separator is compared before parts.
+        assert BasePath("a", separator=".") < BasePath("a", separator="/")
+
 
 class TestBasePathLe:
     @pytest.mark.parametrize(
