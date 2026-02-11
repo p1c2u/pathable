@@ -1,4 +1,5 @@
 """Pathable accessors module"""
+from collections import OrderedDict
 from collections.abc import Hashable
 from collections.abc import Mapping
 from collections.abc import Sequence
@@ -6,6 +7,7 @@ from pathlib import Path
 import sys
 from typing import Any
 from typing import Generic
+from typing import Optional
 from typing import TypeVar
 from typing import Union
 
@@ -136,17 +138,56 @@ class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, 
         super().__init__(node)
 
         # Per-instance cache: avoids global strong references and id-reuse hazards.
-        self._cache: dict[tuple[CSK, ...], CSV] = {}
+        # Default maxsize matches functools.lru_cache default (128).
+        self._cache_enabled = True
+        self._cache_maxsize: Optional[int] = 128
+        self._cache: OrderedDict[tuple[CSK, ...], CSV] = OrderedDict()
+
+    def clear_cache(self) -> None:
+        """Clear any cached reads for this accessor instance."""
+        self._cache.clear()
+
+    def disable_cache(self) -> None:
+        """Disable caching for this accessor instance."""
+        self._cache_enabled = False
+        self._cache.clear()
+
+    def enable_cache(self, *, maxsize: Optional[int] = 128) -> None:
+        """Enable caching for this accessor instance.
+
+        Args:
+            maxsize: Maximum number of distinct paths to cache.
+                - 128 by default (matches functools.lru_cache)
+                - None for unbounded
+                - 0 to disable caching
+        """
+        self._cache_enabled = True
+        self._cache_maxsize = maxsize
+        self._cache.clear()
 
     def read(self, parts: Sequence[CSK]) -> CSV:
         key = tuple(parts)
+        if (not self._cache_enabled) or self._cache_maxsize == 0:
+            node = self._get_node(self.node, pdeque(parts))
+            return self._read_node(node)
+
         try:
-            return self._cache[key]
+            value = self._cache[key]
         except KeyError:
             node = self._get_node(self.node, pdeque(parts))
             value = self._read_node(node)
             self._cache[key] = value
+        else:
+            # Mark as recently used.
+            self._cache.move_to_end(key)
             return value
+
+        # Enforce max size (LRU eviction).
+        if self._cache_maxsize is not None:
+            while len(self._cache) > self._cache_maxsize:
+                self._cache.popitem(last=False)
+
+        return value
 
 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):

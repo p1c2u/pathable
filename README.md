@@ -19,7 +19,7 @@ It’s especially handy when you want to:
 * Intuitive path-based navigation for nested data (e.g., dicts/lists)
 * Pluggable accessor layer for custom backends
 * Pythonic, chainable API for concise and readable code
-* Per-instance cached lookup accessor for repeated reads of the same tree
+* Per-instance (bounded LRU) cached lookup accessor for repeated reads of the same tree
 
 ## Quickstart
 
@@ -121,6 +121,11 @@ Equality and ordering:
 * `BasePath` equality, hashing, and ordering are all based on both `separator` and `parts`.
 * Ordering is separator-sensitive and deterministic, even when parts mix types (e.g. ints and strings).
 * Path parts are type-sensitive (`0` is not equal to `"0"`).
+
+Lookup caching:
+
+* `LookupPath` uses a per-instance LRU cache (default maxsize: 128) on its accessor.
+* You can control it via `path.accessor.clear_cache()`, `path.accessor.disable_cache()`, and `path.accessor.enable_cache(maxsize=...)`.
 
 ## Installation
 
