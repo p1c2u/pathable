@@ -32,7 +32,11 @@ class NodeAccessor(Generic[N, K, V]):
     """Node accessor."""
 
     def __init__(self, node: N):
-        self.node = node
+        self._node = node
+
+    @property
+    def node(self) -> N:
+        return self._node
 
     def __eq__(self, other: object) -> Any:
         if not isinstance(other, NodeAccessor):

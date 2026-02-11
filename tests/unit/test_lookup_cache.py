@@ -81,3 +81,26 @@ def test_lookup_accessor_lru_eviction_respects_maxsize() -> None:
     # a/b should be a cache miss now
     a.read_value()
     assert resource.getitem_counter == 3
+
+
+def test_lookup_accessor_node_is_immutable() -> None:
+    value1 = {"v": 1}
+    value2 = {"v": 2}
+    resource1 = CounterDict(test2=value1)
+    resource2 = CounterDict(test2=value2)
+
+    p = LookupPath.from_lookup(resource1, "test2")
+
+    assert p.read_value() == value1
+    assert resource1.getitem_counter == 1
+    assert resource2.getitem_counter == 0
+
+    try:
+        p.accessor.node = resource2  # type: ignore[misc]
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError("Expected node to be immutable")
+
+    # Still reads from the original node.
+    assert p.read_value() == value1

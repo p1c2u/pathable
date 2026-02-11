@@ -126,6 +126,7 @@ Lookup caching:
 
 * `LookupPath` uses a per-instance LRU cache (default maxsize: 128) on its accessor.
 * You can control it via `path.accessor.clear_cache()`, `path.accessor.disable_cache()`, and `path.accessor.enable_cache(maxsize=...)`.
+* `path.accessor.node` is immutable; to point at a different tree, create a new `LookupPath`/accessor.
 
 ## Installation
 
