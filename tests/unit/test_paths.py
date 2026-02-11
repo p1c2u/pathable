@@ -232,7 +232,9 @@ class TestBasePathHash:
         p1 = BasePath("a", separator="/")
         p2 = BasePath("a", separator=".")
         assert p1 != p2
-        assert hash(p1) != hash(p2)
+        assert len({p1, p2}) == 2
+        assert {p1: 1, p2: 2}[p1] == 1
+        assert {p1: 1, p2: 2}[p2] == 2
 
 
 
