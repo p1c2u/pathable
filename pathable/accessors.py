@@ -114,7 +114,7 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
     def len(self, parts: Sequence[str]) -> int:
         subpath = Path(self.node, *parts)
         try:
-            return len(list(subpath.iterdir()))
+            return sum(1 for _ in subpath.iterdir())
         except OSError as exc:
             raise KeyError from exc
 
