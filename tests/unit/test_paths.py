@@ -575,6 +575,32 @@ class TestBasePathLt:
         # Separator is compared before parts.
         assert BasePath("a", separator=".") < BasePath("a", separator="/")
 
+    def test_type_identifier_includes_module(self):
+        # Two distinct types may share the same __qualname__.
+        # Ordering must remain deterministic and distinguish them.
+        class Same:
+            __module__ = "module_a"
+
+            def __str__(self) -> str:
+                return "x"
+
+        SameA = Same
+
+        class Same:
+            __module__ = "module_b"
+
+            def __str__(self) -> str:
+                return "x"
+
+        SameB = Same
+
+        root = AccessorPath(MockAccessor())
+        p1 = root._make_child_relpath(SameA())
+        p2 = root._make_child_relpath(SameB())
+
+        assert p1 != p2
+        assert (p1 < p2) ^ (p2 < p1)
+
 
 class TestBasePathLe:
     @pytest.mark.parametrize(

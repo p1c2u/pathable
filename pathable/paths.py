@@ -61,11 +61,12 @@ class BasePath:
     def _cmp_parts(self) -> tuple[tuple[str, str], ...]:
         """Stable, type-aware comparison key for ordering.
 
-        We include the type name so that e.g. `0` and "0" compare
-        deterministically without being considered equal.
+        We include a fully-qualified type identifier so that e.g. `0` and "0"
+        compare deterministically without being considered equal, and so that
+        similarly-named types from different modules do not collide.
         """
         return tuple(
-            (type(p).__qualname__, c)
+            (f"{type(p).__module__}.{type(p).__qualname__}", c)
             for p, c in zip(self.parts, self._cparts)
         )
 
