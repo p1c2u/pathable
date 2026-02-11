@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from types import GeneratorType
 from typing import Any
 from typing import Union
-from unittest import result
 
 import pytest
 
