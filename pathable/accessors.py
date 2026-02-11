@@ -84,11 +84,14 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
 
     def stat(self, parts: Sequence[str]) -> Union[dict[str, Any], None]:
         subpath = self.node.joinpath(*parts)
-        # Avoid following symlinks (Python 3.10+)
-        if sys.version_info >= (3, 10):
-            stat = subpath.stat(follow_symlinks=False)
-        else:
-            stat  = subpath.stat()
+        try:
+            # Avoid following symlinks (Python 3.10+)
+            if sys.version_info >= (3, 10):
+                stat = subpath.stat(follow_symlinks=False)
+            else:
+                stat = subpath.lstat()
+        except OSError:
+            return None
         return {
             key: getattr(stat, key)
             for key in dir(stat)
@@ -97,7 +100,7 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
 
     def keys(self, parts: Sequence[str]) -> Sequence[str]:
         subpath = Path(self.node, *parts)
-        return [path.parts[0] for path in subpath.iterdir()]
+        return [path.name for path in subpath.iterdir()]
 
     def len(self, parts: Sequence[str]) -> int:
         subpath = Path(self.node, *parts)
