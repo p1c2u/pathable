@@ -64,7 +64,10 @@ class BasePath:
         We include the type name so that e.g. `0` and "0" compare
         deterministically without being considered equal.
         """
-        return tuple((type(p).__qualname__, str(p)) for p in self.parts)
+        return tuple(
+            (type(p).__qualname__, c)
+            for p, c in zip(self.parts, self._cparts)
+        )
 
     def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
         parts = parse_args(args, self.separator)
