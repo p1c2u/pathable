@@ -108,14 +108,14 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         subpath = Path(self.node, *parts)
         try:
             return [path.name for path in subpath.iterdir()]
-        except OSError as exc:
+        except (FileNotFoundError, NotADirectoryError) as exc:
             raise KeyError from exc
 
     def len(self, parts: Sequence[str]) -> int:
         subpath = Path(self.node, *parts)
         try:
             return sum(1 for _ in subpath.iterdir())
-        except OSError as exc:
+        except (FileNotFoundError, NotADirectoryError) as exc:
             raise KeyError from exc
 
     def read(self, parts: Sequence[str]) -> bytes:
