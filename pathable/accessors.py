@@ -239,7 +239,8 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     def len(self, parts: Sequence[LookupKey]) -> int:
         node = self._get_node(self.node, pdeque(parts))
-        # Define length as the number of child paths (consistent with keys()).
+        # Return the number of child paths. Leaf nodes have zero child paths
+        # (keys() is unsupported for leaf nodes and raises AttributeError).
         if isinstance(node, Mapping):
             return len(node)
         if isinstance(node, list):
