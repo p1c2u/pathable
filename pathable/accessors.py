@@ -89,7 +89,7 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
             if sys.version_info >= (3, 10):
                 stat = subpath.stat(follow_symlinks=False)
             else:
-                stat = subpath.stat()
+                stat = subpath.lstat()
         except OSError:
             return None
         return {
