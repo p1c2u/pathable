@@ -1,12 +1,13 @@
 """Pathable accessors module"""
+from collections import OrderedDict
 from collections.abc import Hashable
 from collections.abc import Mapping
 from collections.abc import Sequence
-from functools import lru_cache
 from pathlib import Path
 import sys
 from typing import Any
 from typing import Generic
+from typing import Optional
 from typing import TypeVar
 from typing import Union
 
@@ -31,7 +32,11 @@ class NodeAccessor(Generic[N, K, V]):
     """Node accessor."""
 
     def __init__(self, node: N):
-        self.node = node
+        self._node = node
+
+    @property
+    def node(self) -> N:
+        return self._node
 
     def __eq__(self, other: object) -> Any:
         if not isinstance(other, NodeAccessor):
@@ -133,24 +138,60 @@ class SubscriptableAccessor(NodeAccessor[Union[Subscriptable[SK, SV], SV], SK, S
 
 
 class CachedSubscriptableAccessor(SubscriptableAccessor[CSK, CSV], Generic[CSK, CSV]):
-
-    _node_refs: dict[int, Union[Subscriptable[CSK, CSV], CSV]] = {}
-
     def __init__(self, node: Union[Subscriptable[CSK, CSV], CSV]):
         super().__init__(node)
 
-        self._node_refs[id(node)] = node
+        # Per-instance cache: avoids global strong references and id-reuse hazards.
+        # Default maxsize matches functools.lru_cache default (128).
+        self._cache_enabled = True
+        self._cache_maxsize: Optional[int] = 128
+        self._cache: OrderedDict[tuple[CSK, ...], CSV] = OrderedDict()
+
+    def clear_cache(self) -> None:
+        """Clear any cached reads for this accessor instance."""
+        self._cache.clear()
+
+    def disable_cache(self) -> None:
+        """Disable caching for this accessor instance."""
+        self._cache_enabled = False
+        self._cache.clear()
+
+    def enable_cache(self, *, maxsize: Optional[int] = 128) -> None:
+        """Enable caching for this accessor instance.
+
+        Args:
+            maxsize: Maximum number of distinct paths to cache.
+                - 128 by default (matches functools.lru_cache)
+                - None for unbounded
+                - 0 to disable caching
+        """
+        self._cache_enabled = True
+        self._cache_maxsize = maxsize
+        self._cache.clear()
 
     def read(self, parts: Sequence[CSK]) -> CSV:
-        self._node_refs[id(self.node)] = self.node
-        return self._read_cached(id(self.node), pdeque(parts))
+        key = tuple(parts)
+        if (not self._cache_enabled) or self._cache_maxsize == 0:
+            node = self._get_node(self.node, pdeque(parts))
+            return self._read_node(node)
 
-    @classmethod
-    @lru_cache
-    def _read_cached(cls, node_id: int, parts: PDeque[CSK]) -> CSV:
-        node: Union[Subscriptable[CSK, CSV], CSV] = cls._node_refs[node_id]
-        node = cls._get_node(node, pdeque(parts))
-        return cls._read_node(node)
+        try:
+            value = self._cache[key]
+        except KeyError:
+            node = self._get_node(self.node, pdeque(parts))
+            value = self._read_node(node)
+            self._cache[key] = value
+        else:
+            # Mark as recently used.
+            self._cache.move_to_end(key)
+            return value
+
+        # Enforce max size (LRU eviction).
+        if self._cache_maxsize is not None:
+            while len(self._cache) > self._cache_maxsize:
+                self._cache.popitem(last=False)
+
+        return value
 
 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
