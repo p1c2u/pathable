@@ -195,25 +195,25 @@ class TestBasePathHash:
     def test_empty(self):
         p = BasePath()
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_single(self):
         p = BasePath("part1")
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_double(self):
         args = ["part1", "part2"]
         p = BasePath(*args)
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_separator(self):
         args = ["part1", "part2"]
         separator = ","
         p = BasePath(*args, separator=separator)
 
-        assert hash(p) == hash(tuple(p._cparts))
+        assert hash(p) == hash((p.separator, p.parts))
 
     def test_cparts_cached(self):
         part = MockPart("part1")
@@ -221,10 +221,18 @@ class TestBasePathHash:
         separator = ","
         p = BasePath(*args, separator=separator)
 
-        assert hash(p) == hash(tuple(p._cparts))
-        assert part.str_counter == 1
-        assert hash(p) == hash(tuple(p._cparts))
-        assert part.str_counter == 1
+        # Hashing does not stringify parts.
+        assert part.str_counter == 0
+        assert hash(p) == hash((p.separator, p.parts))
+        assert part.str_counter == 0
+        assert hash(p) == hash((p.separator, p.parts))
+        assert part.str_counter == 0
+
+    def test_separator_part_of_hash(self):
+        p1 = BasePath("a", separator="/")
+        p2 = BasePath("a", separator=".")
+        assert p1 != p2
+        assert hash(p1) != hash(p2)
 
 
 
@@ -523,6 +531,12 @@ class TestBasePathEq:
         result = BasePath() == []
 
         assert result is False
+
+    def test_type_sensitive_parts(self):
+        assert BasePath(0) != BasePath("0")
+
+    def test_separator_part_of_equality(self):
+        assert BasePath("a", separator="/") != BasePath("a", separator=".")
 
 
 class TestBasePathLt:

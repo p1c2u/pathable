@@ -54,8 +54,17 @@ class BasePath:
 
     @cached_property
     def _cparts(self) -> tuple[str, ...]:
-        # Cached casefolded parts, for hashing and comparison
+        # Cached stringified parts for display.
         return tuple(str(p) for p in self.parts)
+
+    @cached_property
+    def _cmp_parts(self) -> tuple[tuple[str, str], ...]:
+        """Stable, type-aware comparison key for ordering.
+
+        We include the type name so that e.g. `0` and "0" compare
+        deterministically without being considered equal.
+        """
+        return tuple((type(p).__qualname__, str(p)) for p in self.parts)
 
     def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
         parts = parse_args(args, self.separator)
@@ -202,7 +211,7 @@ class BasePath:
         return f"{self.__class__.__name__}({str(self)!r})"
 
     def __hash__(self) -> int:
-        return hash(tuple(self._cparts))
+        return hash((self.separator, self.parts))
 
     def __truediv__(self: TBasePath, key: Any) -> TBasePath:
         try:
@@ -223,27 +232,27 @@ class BasePath:
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return self._cparts == other._cparts
+        return (self.separator, self.parts) == (other.separator, other.parts)
 
     def __lt__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return self._cparts < other._cparts
+        return (self.separator, self._cmp_parts) < (other.separator, other._cmp_parts)
 
     def __le__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return self._cparts <= other._cparts
+        return (self.separator, self._cmp_parts) <= (other.separator, other._cmp_parts)
 
     def __gt__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return self._cparts > other._cparts
+        return (self.separator, self._cmp_parts) > (other.separator, other._cmp_parts)
 
     def __ge__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return self._cparts >= other._cparts
+        return (self.separator, self._cmp_parts) >= (other.separator, other._cmp_parts)
 
 
 class AccessorPath(BasePath, Generic[N, K, V]):
