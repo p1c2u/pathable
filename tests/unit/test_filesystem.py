@@ -200,6 +200,24 @@ class TestPathAccessorKeys:
 
         assert sorted(result) == [".hidden", "visible.txt"]
 
+    def test_keys_non_existing_directory(self, tmp_path):
+        """Test keys raises KeyError for non-existing directory."""
+        accessor = PathAccessor(tmp_path / "invalid_key")
+
+        with pytest.raises(KeyError):
+            accessor.keys([])
+
+
+class TestPathAccessorKeys:
+    """Tests for PathAccessor.len() method."""
+
+    def test_len_non_existing_directory(self, tmp_path):
+        """Test len raises KeyError for non-existing directory."""
+        accessor = PathAccessor(tmp_path / "invalid_key")
+
+        with pytest.raises(KeyError):
+            accessor.len([])
+
 
 class TestFilesystemPathExists:
     """Tests for FilesystemPath.exists() method."""
@@ -299,3 +317,14 @@ class TestFilesystemPathKeys:
         result = child_path.keys()
 
         assert sorted(result) == ["file1.txt", "file2.txt"]
+
+
+class TestFilesystemPathLen:
+    """Tests for FilesystemPath.len() method."""
+
+    def test__empty_directory(self, tmp_path):
+        """Test len raises KeyError for non-existing directory."""
+        path = FilesystemPath.from_path(tmp_path / "invalid_key")
+
+        with pytest.raises(KeyError):
+            len(path)

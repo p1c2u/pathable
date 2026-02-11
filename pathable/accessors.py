@@ -106,11 +106,17 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
 
     def keys(self, parts: Sequence[str]) -> Sequence[str]:
         subpath = Path(self.node, *parts)
-        return [path.name for path in subpath.iterdir()]
+        try:
+            return [path.name for path in subpath.iterdir()]
+        except OSError as exc:
+            raise KeyError from exc
 
     def len(self, parts: Sequence[str]) -> int:
         subpath = Path(self.node, *parts)
-        return len(list(subpath.iterdir()))
+        try:
+            return len(list(subpath.iterdir()))
+        except OSError as exc:
+            raise KeyError from exc
 
     def read(self, parts: Sequence[str]) -> bytes:
         node = self._get_node(self.node, pdeque(parts))
@@ -235,7 +241,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
             return list(node.keys())
         if isinstance(node, list):
             return list(range(len(node)))
-        raise AttributeError
+        return []
 
     def len(self, parts: Sequence[LookupKey]) -> int:
         node = self._get_node(self.node, pdeque(parts))

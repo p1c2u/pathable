@@ -381,7 +381,10 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         return key in self.accessor.keys(self.parts)
 
     def __len__(self) -> int:
-        """Return the number of child paths."""
+        """Return the number of child paths.
+
+        Raises KeyError if the path doesn't exist.
+        """
         return self.accessor.len(self.parts)
 
     def exists(self) -> bool:
@@ -389,7 +392,10 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         return self.accessor.stat(self.parts) is not None
 
     def keys(self) -> Sequence[K]:
-        """Return all keys at the current path."""
+        """Return all keys at the current path.
+
+        Raises KeyError if the path doesn't exist.
+        """
         return self.accessor.keys(self.parts)
 
     def items(self: TAccessorPath) -> Iterator[tuple[K, TAccessorPath]]:

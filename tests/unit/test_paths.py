@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from types import GeneratorType
 from typing import Any
 from typing import Union
+from unittest import result
 
 import pytest
 
@@ -1052,6 +1053,13 @@ class TestLookupPathLen:
 
         assert result == 2
 
+    def test_non_existing(self):
+        resource = {"test1": "test2"}
+        p = LookupPath._from_lookup(resource, "invalid_key")
+
+        with pytest.raises(KeyError):
+            len(p)
+
 
 class TestLookupPathKeys:
     def test_empty(self):
@@ -1066,15 +1074,17 @@ class TestLookupPathKeys:
         resource = {"test1": "test2"}
         p = LookupPath._from_lookup(resource, "test1")
 
-        with pytest.raises(AttributeError):
-            p.keys()
+        result = p.keys()
+
+        assert list(result) == []
 
     def test_string(self):
         resource = "test1"
         p = LookupPath._from_lookup(resource)
 
-        with pytest.raises(AttributeError):
-            p.keys()
+        result = p.keys()
+
+        assert list(result) == []
 
     def test_dict(self):
         resource = {"test1": "test2"}
@@ -1091,6 +1101,13 @@ class TestLookupPathKeys:
         result = p.keys()
 
         assert list(result) == [0, 1]
+
+    def test_non_existing(self):
+        resource = {"test1": "test2"}
+        p = LookupPath._from_lookup(resource, "invalid_key")
+
+        with pytest.raises(KeyError):
+            p.keys()
 
 
 class TestLookupPathContains:
