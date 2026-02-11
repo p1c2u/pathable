@@ -322,7 +322,7 @@ class TestFilesystemPathKeys:
 class TestFilesystemPathLen:
     """Tests for FilesystemPath.len() method."""
 
-    def test__empty_directory(self, tmp_path):
+    def test_len_non_existing_directory(self, tmp_path):
         """Test len raises KeyError for non-existing directory."""
         path = FilesystemPath.from_path(tmp_path / "invalid_key")
 
