@@ -208,7 +208,7 @@ class TestPathAccessorKeys:
             accessor.keys([])
 
 
-class TestPathAccessorKeys:
+class TestPathAccessorLen:
     """Tests for PathAccessor.len() method."""
 
     def test_len_non_existing_directory(self, tmp_path):
