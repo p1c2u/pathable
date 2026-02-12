@@ -414,8 +414,16 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         return path.read_value()
 
     def __contains__(self, key: K) -> bool:
-        """Check if a key exists in the path."""
-        return key in self.accessor.keys(self.parts)
+        """Check if a key exists in the path.
+
+        This mirrors typical container semantics: membership checks return a
+        boolean and do not raise for missing/non-traversable intermediate
+        nodes.
+        """
+        try:
+            return key in self.accessor.keys(self.parts)
+        except KeyError:
+            return False
 
     def __len__(self) -> int:
         """Return the number of child paths.

@@ -795,6 +795,10 @@ class TestAccessorPathKeys:
 
 
 class TestAccessorPathContains:
+    class KeysKeyErrorAccessor(MockAccessor):
+        def keys(self, parts: list[Hashable]) -> Any:
+            raise KeyError
+
     def test_valid(self):
         accessor = MockAccessor("test1", "test2")
         p = AccessorPath(accessor)
@@ -806,6 +810,10 @@ class TestAccessorPathContains:
         p = AccessorPath(accessor)
         result = "test3" in p
         assert result is False
+
+    def test_missing_path_does_not_raise(self):
+        p = AccessorPath(self.KeysKeyErrorAccessor())
+        assert ("anything" in p) is False
 
 
 class TestAccessorPathItems:
@@ -1200,6 +1208,12 @@ class TestLookupPathContains:
         result = "test4" in p
 
         assert result is False
+
+    def test_missing_intermediate_does_not_raise(self):
+        resource = {"test1": {"test2": {"test3": "value"}}}
+        p = LookupPath._from_lookup(resource, "test1", "missing")
+
+        assert ("any" in p) is False
 
 
 class TestLookupPathItems:
