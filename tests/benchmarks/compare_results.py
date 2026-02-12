@@ -5,16 +5,12 @@ Exits non-zero if candidate regresses beyond the configured tolerance.
 This is meant for local regression checking and optional CI gating.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 from dataclasses import dataclass
 from typing import Any
-from typing import Dict
 from typing import Iterable
 from typing import Mapping
-from typing import Tuple
 from typing import cast
 
 
@@ -31,21 +27,21 @@ def _load(path: str) -> Mapping[str, Any]:
         data_any = json.load(f)
     if not isinstance(data_any, dict):
         raise ValueError("Invalid report: expected top-level JSON object")
-    return cast(Dict[str, Any], data_any)
+    return cast(dict[str, Any], data_any)
 
 
-def _extract_ops(report: Mapping[str, Any]) -> Dict[str, float]:
+def _extract_ops(report: Mapping[str, Any]) -> dict[str, float]:
     benchmarks = report.get("benchmarks")
     if not isinstance(benchmarks, dict):
         raise ValueError("Invalid report: missing 'benchmarks' dict")
 
-    benchmarks_d = cast(Dict[str, Any], benchmarks)
+    benchmarks_d = cast(dict[str, Any], benchmarks)
 
-    out: Dict[str, float] = {}
+    out: dict[str, float] = {}
     for name, payload in benchmarks_d.items():
         if not isinstance(payload, dict):
             continue
-        payload_d = cast(Dict[str, Any], payload)
+        payload_d = cast(dict[str, Any], payload)
         ops_any = payload_d.get("median_ops_per_sec")
         ops = ops_any if isinstance(ops_any, (int, float)) else None
         if ops is not None:
@@ -58,7 +54,7 @@ def compare(
     baseline: Mapping[str, Any],
     candidate: Mapping[str, Any],
     tolerance: float,
-) -> Tuple[list[ScenarioComparison], list[ScenarioComparison]]:
+) -> tuple[list[ScenarioComparison], list[ScenarioComparison]]:
     if tolerance < 0:
         raise ValueError("tolerance must be >= 0")
 

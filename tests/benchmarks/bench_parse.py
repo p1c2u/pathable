@@ -1,10 +1,7 @@
 """Benchmarks for parsing and BasePath construction."""
 
-from __future__ import annotations
-
 import argparse
 from typing import Iterable
-from typing import List
 
 from pathable.parsers import parse_args
 from pathable.paths import BasePath
@@ -27,7 +24,7 @@ except ImportError:  # pragma: no cover
 
 def _build_args(n: int) -> list[object]:
     # Mix in segments that exercise splitting, filtering, bytes decode, and ints.
-    out: List[object] = []
+    out: list[object] = []
     for i in range(n):
         if i % 11 == 0:
             out.append(".")
@@ -50,7 +47,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     repeats: int = args.repeats
     warmup_loops: int = args.warmup_loops
 
-    results: List[BenchmarkResult] = []
+    results: list[BenchmarkResult] = []
 
     sizes = [10, 100, 1_000] if not args.quick else [10, 100]
 

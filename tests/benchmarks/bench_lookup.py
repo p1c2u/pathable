@@ -7,14 +7,9 @@ These benchmarks avoid filesystem I/O (too noisy for CI) and focus on:
 - keys/contains/iter overhead on large mappings
 """
 
-from __future__ import annotations
-
 import argparse
 from typing import Any
-from typing import Dict
 from typing import Iterable
-from typing import List
-from typing import Tuple
 
 from pathable.accessors import LookupAccessor
 from pathable.paths import LookupPath
@@ -35,14 +30,14 @@ except ImportError:  # pragma: no cover
     from bench_utils import write_json  # type: ignore[no-redef]
 
 
-def _build_deep_tree(depth: int) -> Dict[str, Any]:
-    node: Dict[str, Any] = {"value": 1}
+def _build_deep_tree(depth: int) -> dict[str, Any]:
+    node: dict[str, Any] = {"value": 1}
     for i in range(depth - 1, -1, -1):
         node = {f"k{i}": node}
     return node
 
 
-def _deep_keys(depth: int) -> Tuple[str, ...]:
+def _deep_keys(depth: int) -> tuple[str, ...]:
     return tuple(f"k{i}" for i in range(depth))
 
 
@@ -53,7 +48,7 @@ def _make_deep_path(root: LookupPath, depth: int) -> LookupPath:
     return p
 
 
-def _build_mapping(size: int) -> Dict[str, int]:
+def _build_mapping(size: int) -> dict[str, int]:
     return {f"k{i}": i for i in range(size)}
 
 
@@ -65,7 +60,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     repeats: int = args.repeats
     warmup_loops: int = args.warmup_loops
 
-    results: List[BenchmarkResult] = []
+    results: list[BenchmarkResult] = []
 
     # --- Lookup read benchmarks ---
     depth = 25 if not args.quick else 10
