@@ -12,9 +12,6 @@ from typing import Optional
 from typing import TypeVar
 from typing import Union
 
-from pyrsistent import PDeque
-from pyrsistent import pdeque
-
 from pathable.protocols import Subscriptable
 from pathable.types import LookupKey
 from pathable.types import LookupNode
@@ -54,24 +51,15 @@ class NodeAccessor(Generic[N, K, V]):
         raise NotImplementedError
 
     def read(self, parts: Sequence[K]) -> V:
-        node = self._get_node(self.node, pdeque(parts))
+        node = self._get_node(self.node, parts)
         return self._read_node(node)
 
     @classmethod
-    def _get_node(cls, node: N, parts: PDeque[K]) -> N:
-        try:
-            part, parts = cls._pop_next_part(parts)
-        except IndexError:
-            return node
-
-        subnode = cls._get_subnode(node, part)
-        return cls._get_node(subnode, parts)
-
-    @classmethod
-    def _pop_next_part(cls, parts: PDeque[K]) -> tuple[K, PDeque[K]]:
-        part = parts[0]
-        parts = parts.popleft()
-        return part, parts
+    def _get_node(cls, node: N, parts: Sequence[K]) -> N:
+        current = node
+        for part in parts:
+            current = cls._get_subnode(current, part)
+        return current
 
     @classmethod
     def _read_node(cls, node: N) -> V:
@@ -115,7 +103,7 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
             raise KeyError from exc
 
     def read(self, parts: Sequence[str]) -> bytes:
-        node = self._get_node(self.node, pdeque(parts))
+        node = self._get_node(self.node, parts)
         return self._read_node(node)
 
     @classmethod
@@ -181,13 +169,13 @@ class CachedSubscriptableAccessor(
     def read(self, parts: Sequence[CSK]) -> CSV:
         key = tuple(parts)
         if (not self._cache_enabled) or self._cache_maxsize == 0:
-            node = self._get_node(self.node, pdeque(parts))
+            node = self._get_node(self.node, parts)
             return self._read_node(node)
 
         try:
             value = self._cache[key]
         except KeyError:
-            node = self._get_node(self.node, pdeque(parts))
+            node = self._get_node(self.node, parts)
             value = self._read_node(node)
             self._cache[key] = value
         else:
@@ -207,7 +195,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     def stat(self, parts: Sequence[LookupKey]) -> Union[dict[str, Any], None]:
         try:
-            node = self._get_node(self.node, pdeque(parts))
+            node = self._get_node(self.node, parts)
         except KeyError:
             return None
 
@@ -232,7 +220,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         }
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
-        node = self._get_node(self.node, pdeque(parts))
+        node = self._get_node(self.node, parts)
         if isinstance(node, Mapping):
             return list(node.keys())
         if isinstance(node, list):
@@ -240,7 +228,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         return []
 
     def len(self, parts: Sequence[LookupKey]) -> int:
-        node = self._get_node(self.node, pdeque(parts))
+        node = self._get_node(self.node, parts)
         # Define length as the number of child paths (consistent with keys()).
         if isinstance(node, Mapping):
             return len(node)
