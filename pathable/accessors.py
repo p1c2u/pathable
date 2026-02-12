@@ -78,10 +78,6 @@ class NodeAccessor(Generic[N, K, V]):
         raise NotImplementedError
 
     @classmethod
-    def _is_node_valid(cls, node: N) -> bool:
-        raise NotImplementedError
-
-    @classmethod
     def _get_subnode(cls, node: N, part: K) -> N:
         raise NotImplementedError
 
