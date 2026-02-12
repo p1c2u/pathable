@@ -54,6 +54,14 @@ class NodeAccessor(Generic[N, K, V]):
         node = self._get_node(self.node, parts)
         return self._read_node(node)
 
+    def validate(self, parts: Sequence[K]) -> None:
+        """Validate that the node at `parts` exists.
+
+        This performs a traversal only and raises `KeyError` (with the failing
+        part when available) if the path is missing or non-traversable.
+        """
+        self._get_node(self.node, parts)
+
     @classmethod
     def _get_node(cls, node: N, parts: Sequence[K]) -> N:
         current = node
@@ -93,6 +101,8 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         try:
             return [path.name for path in subpath.iterdir()]
         except (FileNotFoundError, NotADirectoryError) as exc:
+            if parts:
+                raise KeyError(parts[-1]) from exc
             raise KeyError from exc
 
     def len(self, parts: Sequence[str]) -> int:
@@ -100,6 +110,8 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         try:
             return sum(1 for _ in subpath.iterdir())
         except (FileNotFoundError, NotADirectoryError) as exc:
+            if parts:
+                raise KeyError(parts[-1]) from exc
             raise KeyError from exc
 
     def read(self, parts: Sequence[str]) -> bytes:
@@ -114,7 +126,7 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
     def _get_subnode(cls, node: Path, part: str) -> Path:
         subnode = node / part
         if not subnode.exists():
-            raise KeyError
+            raise KeyError(part)
         return subnode
 
 
@@ -128,8 +140,11 @@ class SubscriptableAccessor(
         cls, node: Union[Subscriptable[SK, SV], SV], part: SK
     ) -> Union[Subscriptable[SK, SV], SV]:
         if not isinstance(node, Subscriptable):
-            raise KeyError
-        return node[part]
+            raise KeyError(part)
+        try:
+            return node[part]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise KeyError(part) from exc
 
 
 class CachedSubscriptableAccessor(
