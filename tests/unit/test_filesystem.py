@@ -200,6 +200,66 @@ class TestPathAccessorKeys:
 
         assert sorted(result) == [".hidden", "visible.txt"]
 
+    def test_keys_non_existing_directory(self, tmp_path):
+        """Test keys raises KeyError for non-existing directory."""
+        accessor = PathAccessor(tmp_path / "invalid_key")
+
+        with pytest.raises(KeyError):
+            accessor.keys([])
+
+    def test_keys_raises_keyerror_for_not_a_directory(self, tmp_path):
+        """Test keys raises KeyError when trying to iterate a file."""
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+
+        accessor = PathAccessor(tmp_path)
+
+        with pytest.raises(KeyError):
+            accessor.keys(["test.txt"])
+
+    def test_keys_propagates_permission_error(self, tmp_path):
+        """Test keys propagates PermissionError instead of converting to KeyError."""
+        accessor = PathAccessor(tmp_path)
+
+        # Mock iterdir to raise PermissionError
+        with patch.object(Path, "iterdir") as mock_iterdir:
+            mock_iterdir.side_effect = PermissionError("Permission denied")
+
+            with pytest.raises(PermissionError):
+                accessor.keys([])
+
+
+class TestPathAccessorLen:
+    """Tests for PathAccessor.len() method."""
+
+    def test_len_non_existing_directory(self, tmp_path):
+        """Test len raises KeyError for non-existing directory."""
+        accessor = PathAccessor(tmp_path / "invalid_key")
+
+        with pytest.raises(KeyError):
+            accessor.len([])
+
+    def test_len_raises_keyerror_for_not_a_directory(self, tmp_path):
+        """Test len raises KeyError when trying to iterate a file."""
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+
+        accessor = PathAccessor(tmp_path)
+
+        with pytest.raises(KeyError):
+            accessor.len(["test.txt"])
+
+    def test_len_propagates_permission_error(self, tmp_path):
+        """Test len propagates PermissionError instead of converting to KeyError."""
+        accessor = PathAccessor(tmp_path)
+
+        # Mock iterdir to raise PermissionError
+        with patch.object(Path, "iterdir") as mock_iterdir:
+            mock_iterdir.side_effect = PermissionError("Permission denied")
+
+            with pytest.raises(PermissionError):
+                accessor.len([])
+
 
 class TestFilesystemPathExists:
     """Tests for FilesystemPath.exists() method."""
@@ -299,3 +359,14 @@ class TestFilesystemPathKeys:
         result = child_path.keys()
 
         assert sorted(result) == ["file1.txt", "file2.txt"]
+
+
+class TestFilesystemPathLen:
+    """Tests for FilesystemPath.len() method."""
+
+    def test_len_non_existing_directory(self, tmp_path):
+        """Test len raises KeyError for non-existing directory."""
+        path = FilesystemPath.from_path(tmp_path / "invalid_key")
+
+        with pytest.raises(KeyError):
+            len(path)
