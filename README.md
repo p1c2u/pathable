@@ -142,3 +142,34 @@ Alternatively you can download the code and install from the repository:
 pip install -e git+https://github.com/p1c2u/pathable.git#egg=pathable
 ```
 
+## Benchmarks
+
+Benchmarks live in `tests/benchmarks/` and produce JSON reports.
+
+Local run (recommended as modules):
+
+```console
+poetry run python -m tests.benchmarks.bench_parse --output reports/bench-parse.json
+poetry run python -m tests.benchmarks.bench_lookup --output reports/bench-lookup.json
+```
+
+Quick sanity run:
+
+```console
+poetry run python -m tests.benchmarks.bench_parse --quick --output reports/bench-parse.quick.json
+poetry run python -m tests.benchmarks.bench_lookup --quick --output reports/bench-lookup.quick.json
+```
+
+Compare two results (fails if candidate is >20% slower in any scenario):
+
+```console
+poetry run python -m tests.benchmarks.compare_results \
+    --baseline reports/bench-before.json \
+    --candidate reports/bench-after.json \
+    --tolerance 0.20
+```
+
+CI (on-demand):
+
+- GitHub Actions workflow `Benchmarks` runs via `workflow_dispatch` and uploads the JSON artifacts.
+
