@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from types import GeneratorType
 from typing import Any
 from typing import Union
+from uuid import uuid4
 
 import pytest
 
@@ -62,6 +63,70 @@ class MockResource(dict):
     def __getitem__(self, key: Hashable) -> Any:
         self.getitem_counter += 1
         return super().__getitem__(key)
+
+
+class TestBasePathParseArgs:
+
+    separator = "/"
+
+    def test_empty(self):
+        args = []
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ()
+
+    def test_string(self):
+        args = ["test"]
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ("test",)
+
+    def test_string_many(self):
+        args = ["test", "test2"]
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ("test", "test2")
+
+    def test_int(self):
+        args = ["test", 1, "test2"]
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ("test", 1, "test2")
+
+    def test_bytes(self):
+        args = [b"test", b"test2"]
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ("test", "test2")
+
+    def test_hashable_passthrough(self):
+        token = uuid4()
+        args = ["test", token, "test2"]
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ("test", token, "test2")
+
+    def test_path(self):
+        args = [BasePath("test")]
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ("test",)
+
+    def test_invalid_part(self):
+        args = [[], []]
+
+        with pytest.raises(
+            TypeError,
+            match=r"argument must be Hashable, bytes, os.PathLike, or BasePath; got <class 'list'>",
+        ):
+            BasePath._parse_args(args, self.separator)
 
 
 class TestBasePathInit:

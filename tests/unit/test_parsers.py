@@ -1,8 +1,8 @@
+from uuid import uuid4
+
 import pytest
 
-from pathable.parsers import parse_args
 from pathable.parsers import parse_parts
-from pathable.paths import BasePath
 
 
 class TestParseParts:
@@ -64,41 +64,26 @@ class TestParseParts:
 
         assert result == ["test", "test1", "test2", "test3"]
 
+    def test_int(self):
+        parts = ["test", 1, "test2"]
 
-class TestParseArgs:
+        result = parse_parts(parts, self.separator)
 
-    separator = "/"
+        assert result == ["test", 1, "test2"]
 
-    def test_empty(self):
-        args = []
+    def test_hashable_passthrough(self):
+        token = uuid4()
+        parts = ["test", token, "test2"]
 
-        result = parse_args(args, self.separator)
+        result = parse_parts(parts, self.separator)
 
-        assert result == ()
+        assert result == ["test", token, "test2"]
 
-    def test_string(self):
-        args = ["test"]
+    def test_invalid_part_message(self):
+        parts = [[]]
 
-        result = parse_args(args, self.separator)
-
-        assert result == ("test",)
-
-    def test_string_many(self):
-        args = ["test", "test2"]
-
-        result = parse_args(args, self.separator)
-
-        assert result == ("test", "test2")
-
-    def test_path(self):
-        args = [BasePath("test")]
-
-        result = parse_args(args, self.separator)
-
-        assert result == ("test",)
-
-    def test_invalid_part(self):
-        args = [(2,), (3,)]
-
-        with pytest.raises(TypeError):
-            parse_args(args, self.separator)
+        with pytest.raises(
+            TypeError,
+            match=r"part must be Hashable or None; got <class 'list'>",
+        ):
+            parse_parts(parts, self.separator)
