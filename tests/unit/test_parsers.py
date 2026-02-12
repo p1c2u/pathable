@@ -79,6 +79,13 @@ class TestParseParts:
 
         assert result == ["test", token, "test2"]
 
+    def test_bytes(self):
+        parts = [b"test", b"test2"]
+
+        result = parse_parts(parts, self.separator)
+
+        assert result == ["test", "test2"]
+
     def test_invalid_part_message(self):
         parts = [[]]
 

@@ -1,5 +1,6 @@
 from collections.abc import Hashable
 from collections.abc import Mapping
+from pathlib import Path
 from types import GeneratorType
 from typing import Any
 from typing import Union
@@ -118,6 +119,13 @@ class TestBasePathParseArgs:
         result = BasePath._parse_args(args, self.separator)
 
         assert result == ("test",)
+
+    def test_pathlike(self):
+        args = [Path("test"), Path("test2")]
+
+        result = BasePath._parse_args(args, self.separator)
+
+        assert result == ("test", "test2")
 
     def test_invalid_part(self):
         args = [[], []]
