@@ -1,5 +1,6 @@
 """Pathable paths module"""
 
+import os
 from collections.abc import Hashable
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -21,7 +22,7 @@ from pathable.accessors import NodeAccessor
 from pathable.accessors import PathAccessor
 from pathable.accessors import V
 from pathable.parsers import SEPARATOR
-from pathable.parsers import parse_args
+from pathable.parsers import parse_parts
 from pathable.types import LookupKey
 from pathable.types import LookupNode
 from pathable.types import LookupValue
@@ -40,8 +41,44 @@ class BasePath:
 
     def __init__(self, *args: Any, separator: Optional[str] = None):
         object.__setattr__(self, "separator", separator or self.separator)
-        parts = parse_args(list(args), self.separator)
+        parts = self._parse_args(args, sep=self.separator)
         object.__setattr__(self, "parts", parts)
+
+    @classmethod
+    def _parse_args(
+        cls,
+        args: Sequence[Any],
+        sep: str = SEPARATOR,
+    ) -> tuple[Hashable, ...]:
+        """Parse constructor arguments into canonical parts.
+
+        Subclasses may override this class method to customize parsing rules
+        (e.g. accepted part types) while preserving the public constructor
+        behavior.
+        """
+        parts: list[Hashable] = []
+
+        for a in args:
+            if isinstance(a, cls):
+                parts.extend(a.parts)
+                continue
+            if isinstance(a, bytes):
+                a = a.decode("ascii")
+            if isinstance(a, os.PathLike):
+                a = os.fspath(a)
+                if isinstance(a, bytes):
+                    a = a.decode("ascii")
+            if isinstance(a, (str, int)):
+                parts.append(a)
+                continue
+            if isinstance(a, Hashable):
+                parts.append(a)
+                continue
+            raise TypeError(
+                "argument must be Hashable, bytes, os.PathLike, or BasePath; got %r"
+                % (type(a),)
+            )
+        return tuple(parse_parts(parts, sep))
 
     @classmethod
     def _from_parts(
@@ -83,7 +120,7 @@ class BasePath:
         )
 
     def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
-        parts = parse_args(args, self.separator)
+        parts = self._parse_args(args, sep=self.separator)
         parts_joined = self.parts + parts
         return self._clone_with_parts(parts_joined)
 
@@ -208,7 +245,7 @@ class BasePath:
 
     def is_relative_to(self, *other: Any) -> bool:
         """Return True if the path is relative to `other`."""
-        other_parts = parse_args(other, sep=self.separator)
+        other_parts = self._parse_args(other, sep=self.separator)
         if len(other_parts) > len(self.parts):
             return False
         return self.parts[: len(other_parts)] == other_parts
@@ -218,7 +255,7 @@ class BasePath:
 
         Raises ValueError if self is not under other.
         """
-        other_parts = parse_args(other, sep=self.separator)
+        other_parts = self._parse_args(other, sep=self.separator)
         if not self.is_relative_to(*other_parts):
             raise ValueError(
                 f"{self!r} is not in the subpath of {BasePath._from_parsed_parts(other_parts, separator=self.separator)!r}"
