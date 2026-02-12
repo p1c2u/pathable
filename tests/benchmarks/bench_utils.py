@@ -4,8 +4,6 @@ This module is intentionally simple to keep benchmarks stable and easy to run
 locally and in CI.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import os
@@ -16,9 +14,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 from typing import Callable
-from typing import Dict
 from typing import Iterable
-from typing import List
 from typing import Mapping
 from typing import MutableMapping
 from typing import Optional
@@ -94,7 +90,7 @@ def run_benchmark(
         for __ in range(loops):
             func()
 
-    times: List[float] = []
+    times: list[float] = []
     for _ in range(repeats):
         start = time.perf_counter()
         for __ in range(loops):
@@ -116,7 +112,7 @@ def results_to_json(
     results: Iterable[BenchmarkResult],
     meta: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "meta": dict(meta or default_meta()),
         "benchmarks": {},
     }
