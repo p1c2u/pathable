@@ -52,8 +52,9 @@ class BasePath:
     ) -> tuple[Hashable, ...]:
         """Parse constructor arguments into canonical parts.
 
-        Subclasses may override to customize parsing rules (e.g. accepted
-        part types) while keeping the public free function API intact.
+        Subclasses may override this class method to customize parsing rules
+        (e.g. accepted part types) while preserving the public constructor
+        behavior.
         """
         parts: list[Hashable] = []
 
