@@ -45,6 +45,10 @@ class NodeAccessor(Generic[N, K, V]):
         raise NotImplementedError
 
     def keys(self, parts: Sequence[K]) -> Sequence[K]:
+        """Return the keys of the node at `parts` if it is traversable, or raise `KeyError` if not.
+
+        This performs a segment-by-segment traversal and raises `KeyError` with the failing segment if any part is missing or non-traversable.
+        """
         raise NotImplementedError
 
     def len(self, parts: Sequence[K]) -> int:
@@ -53,6 +57,14 @@ class NodeAccessor(Generic[N, K, V]):
     def read(self, parts: Sequence[K]) -> V:
         node = self._get_node(self.node, parts)
         return self._read_node(node)
+
+    def validate(self, parts: Sequence[K]) -> None:
+        """Validate that the node at `parts` exists.
+
+        This performs a traversal only and raises `KeyError` (with the failing
+        part when available) if the path is missing or non-traversable.
+        """
+        self._get_node(self.node, parts)
 
     @classmethod
     def _get_node(cls, node: N, parts: Sequence[K]) -> N:
@@ -89,17 +101,25 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         }
 
     def keys(self, parts: Sequence[str]) -> Sequence[str]:
-        subpath = Path(self.node, *parts)
+        # Traverse using `_get_node()` so missing intermediate segments are
+        # reported by `_get_subnode()` with the first failing part.
+        subpath = self._get_node(self.node, parts)
         try:
             return [path.name for path in subpath.iterdir()]
         except (FileNotFoundError, NotADirectoryError) as exc:
+            if parts:
+                raise KeyError(parts[-1]) from exc
             raise KeyError from exc
 
     def len(self, parts: Sequence[str]) -> int:
-        subpath = Path(self.node, *parts)
+        # Traverse using `_get_node()` so missing intermediate segments are
+        # reported by `_get_subnode()` with the first failing part.
+        subpath = self._get_node(self.node, parts)
         try:
             return sum(1 for _ in subpath.iterdir())
         except (FileNotFoundError, NotADirectoryError) as exc:
+            if parts:
+                raise KeyError(parts[-1]) from exc
             raise KeyError from exc
 
     def read(self, parts: Sequence[str]) -> bytes:
@@ -114,7 +134,7 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
     def _get_subnode(cls, node: Path, part: str) -> Path:
         subnode = node / part
         if not subnode.exists():
-            raise KeyError
+            raise KeyError(part)
         return subnode
 
 
@@ -128,8 +148,11 @@ class SubscriptableAccessor(
         cls, node: Union[Subscriptable[SK, SV], SV], part: SK
     ) -> Union[Subscriptable[SK, SV], SV]:
         if not isinstance(node, Subscriptable):
-            raise KeyError
-        return node[part]
+            raise KeyError(part)
+        try:
+            return node[part]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise KeyError(part) from exc
 
 
 class CachedSubscriptableAccessor(

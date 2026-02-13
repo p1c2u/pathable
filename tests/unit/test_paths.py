@@ -12,6 +12,7 @@ from pathable.accessors import NodeAccessor
 from pathable.parsers import SEPARATOR
 from pathable.paths import AccessorPath
 from pathable.paths import BasePath
+from pathable.paths import FilesystemPath
 from pathable.paths import LookupPath
 
 
@@ -1037,8 +1038,18 @@ class TestLookupPathFloorDiv:
         resource = {"test1": {"test2": {"test3": value}}}
         p = LookupPath._from_lookup(resource, "test1/test2")
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError) as excinfo:
             p // "non_existing_key"
+
+        assert excinfo.value.args == ("non_existing_key",)
+
+    def test_missing_intermediate_raises_missing_segment(self):
+        p = LookupPath._from_lookup({"a": "b"}, "a", "missing")
+
+        with pytest.raises(KeyError) as excinfo:
+            p // "x"
+
+        assert excinfo.value.args == ("missing",)
 
     @pytest.mark.parametrize(
         "resource,key,expected",
@@ -1072,8 +1083,19 @@ class TestLookupPathRfloorDiv:
         resource = {"test1": {"test2": {"test3": value}}}
         p = LookupPath._from_lookup(resource, "test1/test2")
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError) as excinfo:
             "non_existing_key" // p
+
+        assert excinfo.value.args == ("non_existing_key",)
+
+    def test_missing_intermediate_raises_missing_segment(self):
+        # The prepended key exists, but a later segment is missing.
+        p = LookupPath._from_lookup({"x": {"a": "b"}}, "a", "missing")
+
+        with pytest.raises(KeyError) as excinfo:
+            "x" // p
+
+        assert excinfo.value.args == ("missing",)
 
     @pytest.mark.parametrize(
         "resource,key,expected",
@@ -1098,6 +1120,58 @@ class TestLookupPathRfloorDiv:
         result = key // p
 
         assert result == expected
+
+
+class TestFilesystemPathValidate:
+    def test_validate_missing_first_segment(self, tmp_path: Path):
+        p = FilesystemPath.from_path(tmp_path)
+
+        with pytest.raises(KeyError) as excinfo:
+            p.accessor.validate(("missing",))
+
+        assert excinfo.value.args == ("missing",)
+
+    def test_validate_missing_intermediate_segment(self, tmp_path: Path):
+        p = FilesystemPath.from_path(tmp_path)
+
+        with pytest.raises(KeyError) as excinfo:
+            p.accessor.validate(("a", "missing"))
+
+        assert excinfo.value.args == ("a",)
+
+
+class TestFilesystemPathKeysAndLenDiagnostics:
+    def test_keys_missing_intermediate_reports_first_missing(
+        self, tmp_path: Path
+    ):
+        p = FilesystemPath.from_path(tmp_path)
+
+        with pytest.raises(KeyError) as excinfo:
+            p.accessor.keys(("a", "b"))
+
+        assert excinfo.value.args == ("a",)
+
+    def test_len_missing_intermediate_reports_first_missing(
+        self, tmp_path: Path
+    ):
+        p = FilesystemPath.from_path(tmp_path)
+
+        with pytest.raises(KeyError) as excinfo:
+            p.accessor.len(("a", "b"))
+
+        assert excinfo.value.args == ("a",)
+
+
+class TestFilesystemPathFloorDivDiagnostics:
+    def test_floordiv_missing_intermediate_reports_first_missing(
+        self, tmp_path: Path
+    ):
+        p = FilesystemPath.from_path(tmp_path) / "a" / "b"
+
+        with pytest.raises(KeyError) as excinfo:
+            p // "x"
+
+        assert excinfo.value.args == ("a",)
 
 
 class TestLookupPathLen:
@@ -1212,6 +1286,12 @@ class TestLookupPathContains:
     def test_missing_intermediate_does_not_raise(self):
         resource = {"test1": {"test2": {"test3": "value"}}}
         p = LookupPath._from_lookup(resource, "test1", "missing")
+
+        assert ("any" in p) is False
+
+    def test_out_of_bounds_list_index_does_not_raise(self):
+        resource = {"test1": [1, 2]}
+        p = LookupPath._from_lookup(resource, "test1", 5)
 
         assert ("any" in p) is False
 

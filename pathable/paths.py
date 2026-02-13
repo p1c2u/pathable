@@ -392,15 +392,24 @@ class AccessorPath(BasePath, Generic[N, K, V]):
 
     def __floordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key appended."""
-        if key not in self:
+        # Validate existence in a way that preserves meaningful KeyError
+        # diagnostics for missing/non-traversable intermediate nodes.
+        keys = self.accessor.keys(self.parts)
+        if key not in keys:
             raise KeyError(key)
         return self / key
 
     def __rfloordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key prepended."""
         new = key / self
-        if not new.exists():
-            raise KeyError(key)
+        # Validate existence in a way that preserves meaningful KeyError
+        # diagnostics for missing/non-traversable intermediate nodes.
+        #
+        # We intentionally avoid `exists()` here because `exists()` uses
+        # `accessor.stat()`, and `stat()` returns `None` for missing paths.
+        # That behavior is useful for boolean checks, but it discards which
+        # segment was missing.
+        new.accessor.validate(new.parts)
         return new
 
     def __iter__(self: TAccessorPath) -> Iterator[TAccessorPath]:
@@ -422,7 +431,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         """
         try:
             return key in self.accessor.keys(self.parts)
-        except KeyError:
+        except (KeyError, IndexError, TypeError):
             return False
 
     def __len__(self) -> int:
