@@ -3,7 +3,6 @@
 import argparse
 from typing import Iterable
 
-from pathable.parsers import parse_args
 from pathable.paths import BasePath
 
 try:
@@ -60,7 +59,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             loops_parse = min(loops_parse, 10_000)
 
         def do_parse(_inputs: tuple[object, ...] = inputs_t) -> None:
-            parse_args(_inputs)
+            BasePath._parse_args(_inputs)
 
         results.append(
             run_benchmark(
