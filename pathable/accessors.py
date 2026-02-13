@@ -336,14 +336,9 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         except KeyError:
             return None
 
-        if isinstance(node, Mapping):
+        if self._is_traversable_node(node):
             return {
-                "type": "mapping",
-                "length": len(node),
-            }
-        if isinstance(node, list):
-            return {
-                "type": "list",
+                "type": type(node).__name__,
                 "length": len(node),
             }
         try:
@@ -352,7 +347,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
             length = None
 
         return {
-            "type": type(node),
+            "type": type(node).__name__,
             "length": length,
         }
 
@@ -402,9 +397,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
     def len(self, parts: Sequence[LookupKey]) -> int:
         node = self._get_node(self.node, parts)
         # Define length as the number of child paths (consistent with keys()).
-        if isinstance(node, Mapping):
-            return len(node)
-        if isinstance(node, list):
+        if self._is_traversable_node(node):
             return len(node)
         # Non-traversable leaf.
         if parts:
