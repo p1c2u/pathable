@@ -1,5 +1,6 @@
 """Pathable accessors module"""
 
+import stat
 import sys
 from collections import OrderedDict
 from collections.abc import Hashable
@@ -50,6 +51,40 @@ class NodeAccessor(Generic[N, K, V]):
         This performs a segment-by-segment traversal and raises `KeyError` with the failing segment if any part is missing or non-traversable.
         """
         raise NotImplementedError
+
+    def is_traversable(self, parts: Sequence[K]) -> bool:
+        """Return True if the node at `parts` can enumerate child keys.
+
+        This is intended for control-flow ("can I call keys()/len()/iterate?")
+        and must not raise for missing or non-traversable paths, but may raise
+        OSError for permission or I/O errors.
+
+        The default implementation attempts a cheap node inspection via
+        `_is_traversable_node` after traversing to the node. If that is not
+        implemented, it falls back to calling `keys()`.
+
+        Note: the fallback may be expensive for accessors where `keys()`
+        enumerates large containers.
+        """
+        try:
+            node = self._get_node(self.node, parts)
+        except KeyError:
+            return False
+        except NotImplementedError:
+            try:
+                self.keys(parts)
+            except (KeyError, IndexError, TypeError, NotImplementedError):
+                return False
+            return True
+
+        try:
+            return self._is_traversable_node(node)
+        except NotImplementedError:
+            try:
+                self.keys(parts)
+            except (KeyError, IndexError, TypeError, NotImplementedError):
+                return False
+            return True
 
     def contains(self, parts: Sequence[K], key: K) -> bool:
         """Return True if `key` is a valid child of the node at `parts`.
@@ -112,6 +147,10 @@ class NodeAccessor(Generic[N, K, V]):
         self._get_node(self.node, parts)
 
     @classmethod
+    def _is_traversable_node(cls, node: N) -> bool:
+        raise NotImplementedError
+
+    @classmethod
     def _get_node(cls, node: N, parts: Sequence[K]) -> N:
         current = node
         for part in parts:
@@ -155,6 +194,15 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
             if parts:
                 raise KeyError(parts[-1]) from exc
             raise KeyError from exc
+
+    @classmethod
+    def _is_traversable_node(cls, node: Path) -> bool:
+        # Avoid following symlinks for consistency with stat()
+        # Use lstat to check the symlink itself, not its target
+        try:
+            return stat.S_ISDIR(node.lstat().st_mode)
+        except OSError:
+            return False
 
     def contains(self, parts: Sequence[str], key: str) -> bool:
         try:
@@ -278,6 +326,10 @@ class CachedSubscriptableAccessor(
 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
+    @classmethod
+    def _is_traversable_node(cls, node: LookupNode) -> bool:
+        return isinstance(node, Mapping) or isinstance(node, list)
+
     def stat(self, parts: Sequence[LookupKey]) -> Union[dict[str, Any], None]:
         try:
             node = self._get_node(self.node, parts)
@@ -342,7 +394,10 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
             return list(node.keys())
         if isinstance(node, list):
             return list(range(len(node)))
-        return []
+        # Non-traversable leaf.
+        if parts:
+            raise KeyError(parts[-1])
+        raise KeyError
 
     def len(self, parts: Sequence[LookupKey]) -> int:
         node = self._get_node(self.node, parts)
@@ -351,7 +406,10 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
             return len(node)
         if isinstance(node, list):
             return len(node)
-        return 0
+        # Non-traversable leaf.
+        if parts:
+            raise KeyError(parts[-1])
+        raise KeyError
 
     @classmethod
     def _read_node(cls, node: LookupNode) -> LookupValue:

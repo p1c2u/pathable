@@ -411,7 +411,10 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         return new
 
     def __iter__(self: TAccessorPath) -> Iterator[TAccessorPath]:
-        """Iterate over all child paths."""
+        """Iterate over all child paths.
+
+        Raises KeyError if the path is missing or non-traversable.
+        """
         for key in self.accessor.keys(self.parts):
             yield self._make_child_relpath(key)
 
@@ -432,7 +435,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
     def __len__(self) -> int:
         """Return the number of child paths.
 
-        Raises KeyError if the path doesn't exist.
+        Raises KeyError if the path is missing or non-traversable.
         """
         return self.accessor.len(self.parts)
 
@@ -440,10 +443,17 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         """Check if the path exists."""
         return self.accessor.stat(self.parts) is not None
 
+    def is_traversable(self) -> bool:
+        """Return True if the path can enumerate child keys.
+
+        This is a convenience wrapper around `accessor.is_traversable(...)`.
+        """
+        return self.accessor.is_traversable(self.parts)
+
     def keys(self) -> Sequence[K]:
         """Return all keys at the current path.
 
-        Raises KeyError if the path doesn't exist.
+        Raises KeyError if the path is missing or non-traversable.
         """
         return self.accessor.keys(self.parts)
 
