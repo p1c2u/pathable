@@ -63,7 +63,7 @@ def main(argv: Iterable[str] | None = None) -> int:
 
         results.append(
             run_benchmark(
-                f"parse.parse_args.size{n}",
+                f"parse.BasePath._parse_args.size{n}",
                 do_parse,
                 loops=loops_parse,
                 repeats=repeats,

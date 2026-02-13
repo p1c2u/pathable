@@ -51,6 +51,29 @@ class NodeAccessor(Generic[N, K, V]):
         """
         raise NotImplementedError
 
+    def contains(self, parts: Sequence[K], key: K) -> bool:
+        """Return True if `key` is a valid child of the node at `parts`.
+
+        The default implementation uses `keys()` for compatibility with
+        accessors that only define enumeration.
+
+        This method is intended to be used for membership checks (e.g. `key in
+        path`) where errors should not be raised.
+        """
+        try:
+            return key in self.keys(parts)
+        except (KeyError, IndexError, TypeError):
+            return False
+
+    def require_child(self, parts: Sequence[K], key: K) -> None:
+        """Assert that `key` is a valid child of the node at `parts`.
+
+        Raises `KeyError` with stable diagnostics.
+        """
+        keys = self.keys(parts)
+        if key not in keys:
+            raise KeyError(key)
+
     def len(self, parts: Sequence[K]) -> int:
         raise NotImplementedError
 
@@ -110,6 +133,23 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
             if parts:
                 raise KeyError(parts[-1]) from exc
             raise KeyError from exc
+
+    def contains(self, parts: Sequence[str], key: str) -> bool:
+        try:
+            subpath = self._get_node(self.node, parts)
+        except KeyError:
+            return False
+        return (subpath / key).exists()
+
+    def require_child(self, parts: Sequence[str], key: str) -> None:
+        subpath = self._get_node(self.node, parts)
+        if not subpath.is_dir():
+            if parts:
+                raise KeyError(parts[-1])
+            raise KeyError
+        child = subpath / key
+        if not child.exists():
+            raise KeyError(key)
 
     def len(self, parts: Sequence[str]) -> int:
         # Traverse using `_get_node()` so missing intermediate segments are
@@ -241,6 +281,38 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
             "type": type(node),
             "length": length,
         }
+
+    def contains(self, parts: Sequence[LookupKey], key: LookupKey) -> bool:
+        try:
+            node = self._get_node(self.node, parts)
+        except KeyError:
+            return False
+
+        if isinstance(node, Mapping):
+            return key in node
+
+        if isinstance(node, list):
+            return isinstance(key, int) and 0 <= key < len(node)
+
+        return False
+
+    def require_child(
+        self, parts: Sequence[LookupKey], key: LookupKey
+    ) -> None:
+        # Validate parent path for intermediate diagnostics.
+        node = self._get_node(self.node, parts)
+
+        if isinstance(node, Mapping):
+            if key not in node:
+                raise KeyError(key)
+            return
+
+        if isinstance(node, list):
+            if not (isinstance(key, int) and 0 <= key < len(node)):
+                raise KeyError(key)
+            return
+
+        raise KeyError(key)
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
         node = self._get_node(self.node, parts)

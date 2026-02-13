@@ -394,11 +394,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
 
     def __floordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key appended."""
-        # Validate existence in a way that preserves meaningful KeyError
-        # diagnostics for missing/non-traversable intermediate nodes.
-        keys = self.accessor.keys(self.parts)
-        if key not in keys:
-            raise KeyError(key)
+        self.accessor.require_child(self.parts, key)
         return self / key
 
     def __rfloordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
@@ -431,10 +427,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         boolean and do not raise for missing/non-traversable intermediate
         nodes.
         """
-        try:
-            return key in self.accessor.keys(self.parts)
-        except (KeyError, IndexError, TypeError):
-            return False
+        return self.accessor.contains(self.parts, key)
 
     def __len__(self) -> int:
         """Return the number of child paths.

@@ -20,6 +20,27 @@ class ScenarioComparison:
     baseline_ops: float
     candidate_ops: float
     ratio: float
+    baseline_scenario: str
+    candidate_scenario: str
+
+
+def _canonicalize_scenario_name(name: str) -> str:
+    """Return a stable scenario identifier across benchmark renames.
+
+    This keeps `compare_results.py` compatible with older JSON reports.
+    """
+    aliases: tuple[tuple[str, str], ...] = (
+        # Historical rename in bench_parse:
+        #   parse.parse_args.sizeN -> parse.BasePath._parse_args.sizeN
+        # Canonicalize both to parse.args.sizeN.
+        ("parse.parse_args.", "parse.args."),
+        ("parse.BasePath._parse_args.", "parse.args."),
+    )
+
+    for prefix, replacement in aliases:
+        if name.startswith(prefix):
+            return replacement + name[len(prefix) :]
+    return name
 
 
 def _load(path: str) -> Mapping[str, Any]:
@@ -58,13 +79,24 @@ def compare(
     if tolerance < 0:
         raise ValueError("tolerance must be >= 0")
 
-    b = _extract_ops(baseline)
-    c = _extract_ops(candidate)
+    b_raw = _extract_ops(baseline)
+    c_raw = _extract_ops(candidate)
+
+    b: dict[str, tuple[str, float]] = {}
+    c: dict[str, tuple[str, float]] = {}
+
+    for name, ops in b_raw.items():
+        canon = _canonicalize_scenario_name(name)
+        b.setdefault(canon, (name, ops))
+
+    for name, ops in c_raw.items():
+        canon = _canonicalize_scenario_name(name)
+        c.setdefault(canon, (name, ops))
 
     comparisons: list[ScenarioComparison] = []
     for name in sorted(set(b) & set(c)):
-        bops = b[name]
-        cops = c[name]
+        b_name, bops = b[name]
+        c_name, cops = c[name]
         ratio = cops / bops if bops > 0 else float("inf")
         comparisons.append(
             ScenarioComparison(
@@ -72,6 +104,8 @@ def compare(
                 baseline_ops=bops,
                 candidate_ops=cops,
                 ratio=ratio,
+                baseline_scenario=b_name,
+                candidate_scenario=c_name,
             )
         )
 

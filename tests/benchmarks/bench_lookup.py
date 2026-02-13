@@ -171,6 +171,46 @@ def main(argv: Iterable[str] | None = None) -> int:
             )
         )
 
+        # floordiv (`//`): strict child assertion.
+        # Previously this was implemented via keys()+membership, which
+        # materializes all keys for mappings.
+        loops_floordiv = 20_000 if size <= 1_000 else 500
+        if args.quick:
+            loops_floordiv = min(loops_floordiv, 2_000)
+
+        def floordiv_probe(_p: LookupPath = p, _key: str = probe_key) -> None:
+            _ = _p // _key
+
+        results.append(
+            run_benchmark(
+                f"lookup.floordiv.mapping.size{size}",
+                floordiv_probe,
+                loops=loops_floordiv,
+                repeats=repeats,
+                warmup_loops=warmup_loops,
+            )
+        )
+
+        missing_key = "missing"
+
+        def floordiv_missing_probe(
+            _p: LookupPath = p, _key: str = missing_key
+        ) -> None:
+            try:
+                _ = _p // _key
+            except KeyError:
+                return
+
+        results.append(
+            run_benchmark(
+                f"lookup.floordiv_missing.mapping.size{size}",
+                floordiv_missing_probe,
+                loops=loops_floordiv,
+                repeats=repeats,
+                warmup_loops=warmup_loops,
+            )
+        )
+
         # iterating children: should call keys() once and yield child paths.
         loops_iter = 500 if size <= 1_000 else 3
         if args.quick:
