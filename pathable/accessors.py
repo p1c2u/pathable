@@ -1,5 +1,6 @@
 """Pathable accessors module"""
 
+import stat
 import sys
 from collections import OrderedDict
 from collections.abc import Hashable
@@ -199,7 +200,6 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         # Avoid following symlinks for consistency with stat()
         # Use lstat to check the symlink itself, not its target
         try:
-            import stat
             return stat.S_ISDIR(node.lstat().st_mode)
         except OSError:
             return False
