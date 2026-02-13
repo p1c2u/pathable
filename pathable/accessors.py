@@ -66,7 +66,7 @@ class NodeAccessor(Generic[N, K, V]):
             parent = self._get_node(self.node, parts)
             try:
                 self._get_subnode(parent, key)
-            except KeyError:
+            except (KeyError, IndexError, TypeError):
                 return False
             return True
         except KeyError:
