@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from pathable.accessors import LookupAccessor
 from pathable.accessors import NodeAccessor
 from pathable.parsers import SEPARATOR
 from pathable.paths import AccessorPath
@@ -998,6 +999,15 @@ class TestLookupPathIter:
             LookupPath._from_lookup(resource, "test1/test2", 1),
         ]
 
+    def test_leaf_raises_keyerror(self):
+        resource = {"v": "str"}
+        p = LookupPath._from_lookup(resource, "v")
+
+        with pytest.raises(KeyError) as excinfo:
+            list(iter(p))
+
+        assert excinfo.value.args == ("v",)
+
 
 class TestLookupPathGetItem:
     def test_valid(self):
@@ -1295,9 +1305,10 @@ class TestLookupPathLen:
         resource = {"test1": "test2"}
         p = LookupPath._from_lookup(resource, "test1")
 
-        result = len(p)
+        with pytest.raises(KeyError) as excinfo:
+            len(p)
 
-        assert result == 0
+        assert excinfo.value.args == ("test1",)
 
     def test_single(self):
         resource = {"test1": "test2"}
@@ -1336,17 +1347,19 @@ class TestLookupPathKeys:
         resource = {"test1": "test2"}
         p = LookupPath._from_lookup(resource, "test1")
 
-        result = p.keys()
+        with pytest.raises(KeyError) as excinfo:
+            p.keys()
 
-        assert list(result) == []
+        assert excinfo.value.args == ("test1",)
 
     def test_string(self):
         resource = "test1"
         p = LookupPath._from_lookup(resource)
 
-        result = p.keys()
+        with pytest.raises(KeyError) as excinfo:
+            p.keys()
 
-        assert list(result) == []
+        assert excinfo.value.args == ()
 
     def test_dict(self):
         resource = {"test1": "test2"}
@@ -1370,6 +1383,26 @@ class TestLookupPathKeys:
 
         with pytest.raises(KeyError):
             p.keys()
+
+
+class TestLookupTraversable:
+    def test_lookup_accessor_is_traversable(self) -> None:
+        a = LookupAccessor({"m": {"x": 1}, "l": [1, 2], "v": "str"})
+
+        assert a.is_traversable(()) is True
+        assert a.is_traversable(("m",)) is True
+        assert a.is_traversable(("l",)) is True
+        assert a.is_traversable(("v",)) is False
+        assert a.is_traversable(("missing",)) is False
+        assert a.is_traversable(("m", "missing")) is False
+
+    def test_lookuppath_is_traversable(self) -> None:
+        root = LookupPath.from_lookup({"m": {"x": 1}, "v": "str"})
+
+        assert root.is_traversable() is True
+        assert (root / "m").is_traversable() is True
+        assert (root / "v").is_traversable() is False
+        assert (root / "missing").is_traversable() is False
 
 
 class TestLookupPathContains:

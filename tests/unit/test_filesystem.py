@@ -261,6 +261,23 @@ class TestPathAccessorLen:
                 accessor.len([])
 
 
+class TestPathAccessorIsTraversable:
+    def test_is_traversable_true_for_directory(self, tmp_path: Path) -> None:
+        (tmp_path / "d").mkdir()
+        accessor = PathAccessor(tmp_path)
+        assert accessor.is_traversable([]) is True
+        assert accessor.is_traversable(["d"]) is True
+
+    def test_is_traversable_false_for_file(self, tmp_path: Path) -> None:
+        (tmp_path / "f").write_text("x")
+        accessor = PathAccessor(tmp_path)
+        assert accessor.is_traversable(["f"]) is False
+
+    def test_is_traversable_false_for_missing(self, tmp_path: Path) -> None:
+        accessor = PathAccessor(tmp_path)
+        assert accessor.is_traversable(["missing"]) is False
+
+
 class TestFilesystemPathExists:
     """Tests for FilesystemPath.exists() method."""
 
@@ -315,6 +332,18 @@ class TestFilesystemPathExists:
         result = path.exists()
 
         assert result is True
+
+
+class TestFilesystemPathIsTraversable:
+    def test_is_traversable(self, tmp_path: Path) -> None:
+        (tmp_path / "d").mkdir()
+        (tmp_path / "f").write_text("x")
+
+        root = FilesystemPath.from_path(tmp_path)
+        assert root.is_traversable() is True
+        assert (root / "d").is_traversable() is True
+        assert (root / "f").is_traversable() is False
+        assert (root / "missing").is_traversable() is False
 
 
 class TestFilesystemPathKeys:
