@@ -14,6 +14,7 @@ from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import Union
+from typing import overload
 
 from pathable.accessors import K
 from pathable.accessors import LookupAccessor
@@ -30,6 +31,7 @@ from pathable.types import LookupValue
 # Python 3.11+ shortcut: typing.Self
 TBasePath = TypeVar("TBasePath", bound="BasePath")
 TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath[Any, Any, Any]")
+TDefault = TypeVar("TDefault")
 
 
 @dataclass(frozen=True, init=False)
@@ -457,7 +459,13 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         for key in self.accessor.keys(self.parts):
             yield key, self._make_child_relpath(key)
 
-    def get(self, key: K, default: Any = None) -> Any:
+    @overload
+    def get(self, key: K) -> Optional[V]: ...
+
+    @overload
+    def get(self, key: K, default: TDefault) -> Union[V, TDefault]: ...
+
+    def get(self, key: K, default: object = None) -> object:
         """Return the value for key if key is in the path, else default."""
         try:
             return self[key]
