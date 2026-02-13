@@ -55,7 +55,8 @@ class NodeAccessor(Generic[N, K, V]):
         """Return True if the node at `parts` can enumerate child keys.
 
         This is intended for control-flow ("can I call keys()/len()/iterate?")
-        and must not raise for missing paths.
+        and must not raise for missing or non-traversable paths, but may raise
+        OSError for permission or I/O errors.
 
         The default implementation attempts a cheap node inspection via
         `_is_traversable_node` after traversing to the node. If that is not
@@ -195,7 +196,13 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
 
     @classmethod
     def _is_traversable_node(cls, node: Path) -> bool:
-        return node.is_dir()
+        # Avoid following symlinks for consistency with stat()
+        # Use lstat to check the symlink itself, not its target
+        try:
+            import stat
+            return stat.S_ISDIR(node.lstat().st_mode)
+        except OSError:
+            return False
 
     def contains(self, parts: Sequence[str], key: str) -> bool:
         try:

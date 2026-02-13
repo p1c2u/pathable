@@ -1386,7 +1386,7 @@ class TestLookupPathKeys:
 
 
 class TestLookupTraversable:
-    def test_lookup_accessor_is_traversable(self) -> None:
+    def test_lookup_accessor_is_traversable(self):
         a = LookupAccessor({"m": {"x": 1}, "l": [1, 2], "v": "str"})
 
         assert a.is_traversable(()) is True
@@ -1396,7 +1396,7 @@ class TestLookupTraversable:
         assert a.is_traversable(("missing",)) is False
         assert a.is_traversable(("m", "missing")) is False
 
-    def test_lookuppath_is_traversable(self) -> None:
+    def test_lookuppath_is_traversable(self):
         root = LookupPath.from_lookup({"m": {"x": 1}, "v": "str"})
 
         assert root.is_traversable() is True
