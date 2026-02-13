@@ -47,7 +47,7 @@ class NodeAccessor(Generic[N, K, V]):
     def keys(self, parts: Sequence[K]) -> Sequence[K]:
         """Return the keys of the node at `parts` if it is traversable, or raise `KeyError` if not.
 
-        This performs a segment-by-segment traversal and raise `KeyError` with the failing segment if any part is missing or non-traversable.
+        This performs a segment-by-segment traversal and raises `KeyError` with the failing segment if any part is missing or non-traversable.
         """
         raise NotImplementedError
 
