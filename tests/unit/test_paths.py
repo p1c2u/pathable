@@ -1140,6 +1140,40 @@ class TestFilesystemPathValidate:
         assert excinfo.value.args == ("a",)
 
 
+class TestFilesystemPathKeysAndLenDiagnostics:
+    def test_keys_missing_intermediate_reports_first_missing(
+        self, tmp_path: Path
+    ):
+        p = FilesystemPath.from_path(tmp_path)
+
+        with pytest.raises(KeyError) as excinfo:
+            p.accessor.keys(("a", "b"))
+
+        assert excinfo.value.args == ("a",)
+
+    def test_len_missing_intermediate_reports_first_missing(
+        self, tmp_path: Path
+    ):
+        p = FilesystemPath.from_path(tmp_path)
+
+        with pytest.raises(KeyError) as excinfo:
+            p.accessor.len(("a", "b"))
+
+        assert excinfo.value.args == ("a",)
+
+
+class TestFilesystemPathFloorDivDiagnostics:
+    def test_floordiv_missing_intermediate_reports_first_missing(
+        self, tmp_path: Path
+    ):
+        p = FilesystemPath.from_path(tmp_path) / "a" / "b"
+
+        with pytest.raises(KeyError) as excinfo:
+            p // "x"
+
+        assert excinfo.value.args == ("a",)
+
+
 class TestLookupPathLen:
     def test_empty(self):
         resource = {}

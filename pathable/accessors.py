@@ -45,6 +45,10 @@ class NodeAccessor(Generic[N, K, V]):
         raise NotImplementedError
 
     def keys(self, parts: Sequence[K]) -> Sequence[K]:
+        """Return the keys of the node at `parts` if it is traversable, or raise `KeyError` if not.
+
+        This performs a segment-by-segment traversal and raise `KeyError` with the failing segment if any part is missing or non-traversable.
+        """
         raise NotImplementedError
 
     def len(self, parts: Sequence[K]) -> int:
@@ -97,7 +101,9 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         }
 
     def keys(self, parts: Sequence[str]) -> Sequence[str]:
-        subpath = Path(self.node, *parts)
+        # Traverse using `_get_node()` so missing intermediate segments are
+        # reported by `_get_subnode()` with the first failing part.
+        subpath = self._get_node(self.node, parts)
         try:
             return [path.name for path in subpath.iterdir()]
         except (FileNotFoundError, NotADirectoryError) as exc:
@@ -106,7 +112,9 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
             raise KeyError from exc
 
     def len(self, parts: Sequence[str]) -> int:
-        subpath = Path(self.node, *parts)
+        # Traverse using `_get_node()` so missing intermediate segments are
+        # reported by `_get_subnode()` with the first failing part.
+        subpath = self._get_node(self.node, parts)
         try:
             return sum(1 for _ in subpath.iterdir())
         except (FileNotFoundError, NotADirectoryError) as exc:
