@@ -11,7 +11,7 @@ from pathable.paths import LookupPath as ListPath
 
 __author__ = "Artur Maciag"
 __email__ = "maciag.artur@gmail.com"
-__version__ = "0.5.0b2"
+__version__ = "0.5.0b3"
 __url__ = "https://github.com/p1c2u/pathable"
 __license__ = "Apache License, Version 2.0"
 
