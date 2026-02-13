@@ -41,6 +41,41 @@ class MockAccessor(
         return self._content
 
 
+class MockTraversableAccessor(
+    NodeAccessor[Mapping[Hashable, Any], Hashable, Any]
+):
+    """Mock accessor that implements _get_subnode for testing fast paths."""
+
+    def __init__(self, node: Mapping[Hashable, Any]):
+        super().__init__(node)
+
+    def keys(self, parts: list[Hashable]) -> Any:
+        node = self._get_node(self.node, parts)
+        if isinstance(node, Mapping):
+            return list(node.keys())
+        raise KeyError
+
+    def len(self, parts: list[Hashable]) -> int:
+        keys = self.keys(parts)
+        return len(keys)
+
+    def read(self, parts: list[Hashable]) -> Any:
+        return self._read_node(self._get_node(self.node, parts))
+
+    @classmethod
+    def _read_node(cls, node: Any) -> Any:
+        return node
+
+    @classmethod
+    def _get_subnode(cls, node: Any, part: Hashable) -> Any:
+        if not isinstance(node, Mapping):
+            raise KeyError(part)
+        try:
+            return node[part]
+        except KeyError as exc:
+            raise KeyError(part) from exc
+
+
 class MockPart(str):
     """Mock resource for testing purposes."""
 
@@ -815,6 +850,79 @@ class TestAccessorPathContains:
     def test_missing_path_does_not_raise(self):
         p = AccessorPath(self.KeysKeyErrorAccessor())
         assert ("anything" in p) is False
+
+    def test_fast_path_valid(self):
+        """Test fast path (using _get_subnode) for valid key."""
+        node = {"test1": {"nested": "value"}, "test2": "value2"}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor)
+        result = "test1" in p
+        assert result is True
+
+    def test_fast_path_invalid(self):
+        """Test fast path (using _get_subnode) for invalid key."""
+        node = {"test1": {"nested": "value"}, "test2": "value2"}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor)
+        result = "test3" in p
+        assert result is False
+
+    def test_fast_path_nested(self):
+        """Test fast path (using _get_subnode) for nested paths."""
+        node = {"test1": {"nested": "value"}, "test2": "value2"}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor) / "test1"
+        result = "nested" in p
+        assert result is True
+
+    def test_fast_path_missing_parent(self):
+        """Test fast path when parent path is missing."""
+        node = {"test1": {"nested": "value"}}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor) / "missing"
+        result = "anything" in p
+        assert result is False
+
+
+class TestAccessorPathRequireChild:
+    """Tests for require_child fast path using floordiv operator."""
+
+    def test_fast_path_valid_child(self):
+        """Test fast path (using _get_subnode) for valid child."""
+        node = {"test1": {"nested": "value"}, "test2": "value2"}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor)
+        # Should not raise
+        result = p // "test1"
+        assert result == p / "test1"
+
+    def test_fast_path_invalid_child(self):
+        """Test fast path (using _get_subnode) for invalid child."""
+        node = {"test1": {"nested": "value"}, "test2": "value2"}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor)
+        with pytest.raises(KeyError) as excinfo:
+            p // "test3"
+        assert excinfo.value.args == ("test3",)
+
+    def test_fast_path_nested_valid(self):
+        """Test fast path (using _get_subnode) for nested paths."""
+        node = {"test1": {"nested": "value"}, "test2": "value2"}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor) / "test1"
+        # Should not raise
+        result = p // "nested"
+        assert result == p / "nested"
+
+    def test_fast_path_missing_parent(self):
+        """Test fast path when parent path is missing."""
+        node = {"test1": {"nested": "value"}}
+        accessor = MockTraversableAccessor(node)
+        p = AccessorPath(accessor) / "missing"
+        with pytest.raises(KeyError) as excinfo:
+            p // "anything"
+        # Should raise KeyError for the missing parent segment
+        assert excinfo.value.args == ("missing",)
 
 
 class TestAccessorPathItems:

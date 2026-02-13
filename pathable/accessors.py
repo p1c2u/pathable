@@ -54,25 +54,47 @@ class NodeAccessor(Generic[N, K, V]):
     def contains(self, parts: Sequence[K], key: K) -> bool:
         """Return True if `key` is a valid child of the node at `parts`.
 
-        The default implementation uses `keys()` for compatibility with
-        accessors that only define enumeration.
+        The default implementation tries to validate membership by traversing
+        a single step (fast for accessors that implement `_get_subnode`). If
+        traversal isn't available, it falls back to `keys()` for compatibility
+        with accessors that only define enumeration.
 
         This method is intended to be used for membership checks (e.g. `key in
         path`) where errors should not be raised.
         """
         try:
-            return key in self.keys(parts)
-        except (KeyError, IndexError, TypeError):
+            parent = self._get_node(self.node, parts)
+            try:
+                self._get_subnode(parent, key)
+            except (KeyError, IndexError, TypeError):
+                return False
+            return True
+        except KeyError:
             return False
+        except NotImplementedError:
+            try:
+                return key in self.keys(parts)
+            except (KeyError, IndexError, TypeError):
+                return False
 
     def require_child(self, parts: Sequence[K], key: K) -> None:
         """Assert that `key` is a valid child of the node at `parts`.
 
         Raises `KeyError` with stable diagnostics.
         """
-        keys = self.keys(parts)
-        if key not in keys:
-            raise KeyError(key)
+        try:
+            # Validate the parent first to preserve intermediate segment
+            # diagnostics.
+            parent = self._get_node(self.node, parts)
+            try:
+                self._get_subnode(parent, key)
+                return
+            except KeyError as exc:
+                raise KeyError(key) from exc
+        except NotImplementedError:
+            keys = self.keys(parts)
+            if key not in keys:
+                raise KeyError(key)
 
     def len(self, parts: Sequence[K]) -> int:
         raise NotImplementedError
