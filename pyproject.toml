@@ -66,7 +66,7 @@ pytest = ">=6.2.5,<9.0.0"
 pytest-cov = "^6.1.1"
 isort = "^6.0.1"
 black = "^25.1.0"
-flynt = "1.0.2"
+flynt = "1.0.6"
 mypy = "^1.15"
 
 [tool.pytest.ini_options]
