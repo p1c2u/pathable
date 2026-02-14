@@ -13,26 +13,40 @@ def parse_parts(
 ) -> list[Hashable]:
     """Parse (filter and split) path parts."""
     parsed: list[Hashable] = []
-    it = reversed(parts)
-    for part in it:
+    append = parsed.append
+    sep_check = sep
+    for part in reversed(parts):
         if part is None:
             continue
+        # Fast-path: int is common and never needs splitting/decoding.
+        if isinstance(part, int):
+            append(part)
+            continue
+        # Fast-path: str is most common.
+        if isinstance(part, str):
+            if part and part != ".":
+                if sep_check in part:
+                    for x in reversed(part.split(sep_check)):
+                        if x and x != ".":
+                            append(x)
+                else:
+                    append(part)
+            continue
+        # Fast-path: bytes, decode then treat as str.
         if isinstance(part, bytes):
             part = part.decode("ascii")
-        if isinstance(part, str):
-            if sep in part:
-                for x in reversed(part.split(sep)):
-                    if x and x != ".":
-                        parsed.append(x)
-            else:
-                if part and part != ".":
-                    parsed.append(part)
+            if part and part != ".":
+                if sep_check in part:
+                    for x in reversed(part.split(sep_check)):
+                        if x and x != ".":
+                            append(x)
+                else:
+                    append(part)
             continue
+        # Fallback: Hashable (covers e.g. tuple, custom keys).
         if isinstance(part, Hashable):
-            parsed.append(part)
+            append(part)
             continue
-        raise TypeError(
-            "part must be Hashable or None; got %r" % (type(part),)
-        )
+        raise TypeError(f"part must be Hashable or None; got {type(part)!r}")
     parsed.reverse()
     return parsed
