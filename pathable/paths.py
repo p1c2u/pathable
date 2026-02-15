@@ -14,6 +14,7 @@ from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import Union
+from typing import cast
 from typing import overload
 
 from pathable.accessors import K
@@ -418,10 +419,12 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         for key in self.accessor.keys(self.parts):
             yield self._make_child_relpath(key)
 
-    def __getitem__(self, key: K) -> V:
+    def __getitem__(self: TAccessorPath, key: K) -> Union[V, TAccessorPath]:
         """Access a child path's value."""
         path = self // key
-        return path.read_value()
+        if path.is_traversable():
+            return path
+        return cast(V, path.read_value())
 
     def __contains__(self, key: K) -> bool:
         """Check if a key exists in the path.

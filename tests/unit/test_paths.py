@@ -1090,15 +1090,19 @@ class TestLookupPathGet:
     @pytest.mark.parametrize(
         "resource,key,expected",
         (
+            # returns value
             [
                 {"test1": "test2"},
                 "test1",
                 "test2",
             ],
+            # returns subpath
             [
                 {"test1": {"test2": "test3"}},
                 "test1",
-                {"test2": "test3"},
+                LookupPath._from_lookup(
+                    {"test1": {"test2": "test3"}}, "test1"
+                ),
             ],
         ),
     )
