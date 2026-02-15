@@ -37,6 +37,9 @@ class NodeAccessor(Generic[N, K, V]):
     def node(self) -> N:
         return self._node
 
+    def __getitem__(self, parts: Sequence[K]) -> N:
+        return self._get_node(self.node, parts)
+
     def __eq__(self, other: object) -> Any:
         if not isinstance(other, NodeAccessor):
             return NotImplemented
@@ -67,7 +70,7 @@ class NodeAccessor(Generic[N, K, V]):
         enumerates large containers.
         """
         try:
-            node = self._get_node(self.node, parts)
+            node = self[parts]
         except KeyError:
             return False
         except NotImplementedError:
@@ -98,7 +101,7 @@ class NodeAccessor(Generic[N, K, V]):
         path`) where errors should not be raised.
         """
         try:
-            parent = self._get_node(self.node, parts)
+            parent = self[parts]
             try:
                 self._get_subnode(parent, key)
             except (KeyError, IndexError, TypeError):
@@ -120,7 +123,7 @@ class NodeAccessor(Generic[N, K, V]):
         try:
             # Validate the parent first to preserve intermediate segment
             # diagnostics.
-            parent = self._get_node(self.node, parts)
+            parent = self[parts]
             try:
                 self._get_subnode(parent, key)
                 return
@@ -135,7 +138,7 @@ class NodeAccessor(Generic[N, K, V]):
         raise NotImplementedError
 
     def read(self, parts: Sequence[K]) -> V:
-        node = self._get_node(self.node, parts)
+        node = self[parts]
         return self._read_node(node)
 
     def validate(self, parts: Sequence[K]) -> None:
@@ -144,7 +147,7 @@ class NodeAccessor(Generic[N, K, V]):
         This performs a traversal only and raises `KeyError` (with the failing
         part when available) if the path is missing or non-traversable.
         """
-        self._get_node(self.node, parts)
+        self[parts]
 
     @classmethod
     def _is_traversable_node(cls, node: N) -> bool:
@@ -185,9 +188,9 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
         }
 
     def keys(self, parts: Sequence[str]) -> Sequence[str]:
-        # Traverse using `_get_node()` so missing intermediate segments are
+        # Traverse using `get()` so missing intermediate segments are
         # reported by `_get_subnode()` with the first failing part.
-        subpath = self._get_node(self.node, parts)
+        subpath = self[parts]
         try:
             return [path.name for path in subpath.iterdir()]
         except (FileNotFoundError, NotADirectoryError) as exc:
@@ -206,13 +209,13 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
 
     def contains(self, parts: Sequence[str], key: str) -> bool:
         try:
-            subpath = self._get_node(self.node, parts)
+            subpath = self[parts]
         except KeyError:
             return False
         return (subpath / key).exists()
 
     def require_child(self, parts: Sequence[str], key: str) -> None:
-        subpath = self._get_node(self.node, parts)
+        subpath = self[parts]
         if not subpath.is_dir():
             if parts:
                 raise KeyError(parts[-1])
@@ -222,9 +225,9 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
             raise KeyError(key)
 
     def len(self, parts: Sequence[str]) -> int:
-        # Traverse using `_get_node()` so missing intermediate segments are
+        # Traverse using `get()` so missing intermediate segments are
         # reported by `_get_subnode()` with the first failing part.
-        subpath = self._get_node(self.node, parts)
+        subpath = self[parts]
         try:
             return sum(1 for _ in subpath.iterdir())
         except (FileNotFoundError, NotADirectoryError) as exc:
@@ -233,7 +236,7 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
             raise KeyError from exc
 
     def read(self, parts: Sequence[str]) -> bytes:
-        node = self._get_node(self.node, parts)
+        node = self[parts]
         return self._read_node(node)
 
     @classmethod
@@ -302,13 +305,13 @@ class CachedSubscriptableAccessor(
     def read(self, parts: Sequence[CSK]) -> CSV:
         key = tuple(parts)
         if (not self._cache_enabled) or self._cache_maxsize == 0:
-            node = self._get_node(self.node, parts)
+            node = self[parts]
             return self._read_node(node)
 
         try:
             value = self._cache[key]
         except KeyError:
-            node = self._get_node(self.node, parts)
+            node = self[parts]
             value = self._read_node(node)
             self._cache[key] = value
         else:
@@ -332,7 +335,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     def stat(self, parts: Sequence[LookupKey]) -> Union[dict[str, Any], None]:
         try:
-            node = self._get_node(self.node, parts)
+            node = self[parts]
         except KeyError:
             return None
 
@@ -353,7 +356,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     def contains(self, parts: Sequence[LookupKey], key: LookupKey) -> bool:
         try:
-            node = self._get_node(self.node, parts)
+            node = self[parts]
         except KeyError:
             return False
 
@@ -369,7 +372,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         self, parts: Sequence[LookupKey], key: LookupKey
     ) -> None:
         # Validate parent path for intermediate diagnostics.
-        node = self._get_node(self.node, parts)
+        node = self[parts]
 
         if isinstance(node, Mapping):
             if key not in node:
@@ -384,7 +387,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         raise KeyError(key)
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
-        node = self._get_node(self.node, parts)
+        node = self[parts]
         if isinstance(node, Mapping):
             return list(node.keys())
         if isinstance(node, list):
@@ -395,7 +398,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         raise KeyError
 
     def len(self, parts: Sequence[LookupKey]) -> int:
-        node = self._get_node(self.node, parts)
+        node = self[parts]
         # Define length as the number of child paths (consistent with keys()).
         if self._is_traversable_node(node):
             return len(node)
