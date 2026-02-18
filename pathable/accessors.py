@@ -1,7 +1,6 @@
 """Pathable accessors module"""
 
 import stat
-import sys
 from collections import OrderedDict
 from collections.abc import Hashable
 from collections.abc import Mapping
@@ -9,9 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 from typing import Generic
-from typing import Optional
 from typing import TypeVar
-from typing import Union
 
 from pathable.protocols import Subscriptable
 from pathable.types import LookupKey
@@ -45,7 +42,7 @@ class NodeAccessor(Generic[N, K, V]):
             return NotImplemented
         return self.node == other.node
 
-    def stat(self, parts: Sequence[K]) -> Union[dict[str, Any], None]:
+    def stat(self, parts: Sequence[K]) -> dict[str, Any] | None:
         raise NotImplementedError
 
     def keys(self, parts: Sequence[K]) -> Sequence[K]:
@@ -156,8 +153,9 @@ class NodeAccessor(Generic[N, K, V]):
     @classmethod
     def _get_node(cls, node: N, parts: Sequence[K]) -> N:
         current = node
+        get_subnode = cls._get_subnode
         for part in parts:
-            current = cls._get_subnode(current, part)
+            current = get_subnode(current, part)
         return current
 
     @classmethod
@@ -171,14 +169,10 @@ class NodeAccessor(Generic[N, K, V]):
 
 class PathAccessor(NodeAccessor[Path, str, bytes]):
 
-    def stat(self, parts: Sequence[str]) -> Union[dict[str, Any], None]:
+    def stat(self, parts: Sequence[str]) -> dict[str, Any] | None:
         subpath = self.node.joinpath(*parts)
         try:
-            # Avoid following symlinks (Python 3.10+)
-            if sys.version_info >= (3, 10):
-                stat = subpath.stat(follow_symlinks=False)
-            else:
-                stat = subpath.lstat()
+            stat = subpath.stat(follow_symlinks=False)
         except OSError:
             return None
         return {
@@ -252,14 +246,14 @@ class PathAccessor(NodeAccessor[Path, str, bytes]):
 
 
 class SubscriptableAccessor(
-    NodeAccessor[Union[Subscriptable[SK, SV], SV], SK, SV], Generic[SK, SV]
+    NodeAccessor[Subscriptable[SK, SV] | SV, SK, SV], Generic[SK, SV]
 ):
     """Accessor for subscriptable content."""
 
     @classmethod
     def _get_subnode(
-        cls, node: Union[Subscriptable[SK, SV], SV], part: SK
-    ) -> Union[Subscriptable[SK, SV], SV]:
+        cls, node: Subscriptable[SK, SV] | SV, part: SK
+    ) -> Subscriptable[SK, SV] | SV:
         if not isinstance(node, Subscriptable):
             raise KeyError(part)
         try:
@@ -271,13 +265,13 @@ class SubscriptableAccessor(
 class CachedSubscriptableAccessor(
     SubscriptableAccessor[CSK, CSV], Generic[CSK, CSV]
 ):
-    def __init__(self, node: Union[Subscriptable[CSK, CSV], CSV]):
+    def __init__(self, node: Subscriptable[CSK, CSV] | CSV):
         super().__init__(node)
 
         # Per-instance cache: avoids global strong references and id-reuse hazards.
         # Default maxsize matches functools.lru_cache default (128).
         self._cache_enabled = True
-        self._cache_maxsize: Optional[int] = 128
+        self._cache_maxsize: int | None = 128
         self._cache: OrderedDict[tuple[CSK, ...], CSV] = OrderedDict()
 
     def clear_cache(self) -> None:
@@ -289,7 +283,7 @@ class CachedSubscriptableAccessor(
         self._cache_enabled = False
         self._cache.clear()
 
-    def enable_cache(self, *, maxsize: Optional[int] = 128) -> None:
+    def enable_cache(self, *, maxsize: int | None = 128) -> None:
         """Enable caching for this accessor instance.
 
         Args:
@@ -331,23 +325,23 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     @classmethod
     def _is_traversable_node(cls, node: LookupNode) -> bool:
-        return isinstance(node, Mapping) or isinstance(node, list)
+        return isinstance(node, Mapping | list)
 
-    def stat(self, parts: Sequence[LookupKey]) -> Union[dict[str, Any], None]:
+    def stat(self, parts: Sequence[LookupKey]) -> dict[str, Any] | None:
         try:
             node = self[parts]
         except KeyError:
             return None
 
-        if self._is_traversable_node(node):
-            return {
-                "type": type(node).__name__,
-                "length": len(node),
-            }
-        try:
-            length = len(node)
-        except TypeError:
-            length = None
+        length: int | None
+        match node:
+            case Mapping() | list():
+                length = len(node)
+            case _:
+                try:
+                    length = len(node)
+                except TypeError:
+                    length = None
 
         return {
             "type": type(node).__name__,
@@ -360,13 +354,13 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         except KeyError:
             return False
 
-        if isinstance(node, Mapping):
-            return key in node
-
-        if isinstance(node, list):
-            return isinstance(key, int) and 0 <= key < len(node)
-
-        return False
+        match node:
+            case Mapping():
+                return key in node
+            case list() as items:
+                return isinstance(key, int) and 0 <= key < len(items)
+            case _:
+                return False
 
     def require_child(
         self, parts: Sequence[LookupKey], key: LookupKey
@@ -374,24 +368,25 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         # Validate parent path for intermediate diagnostics.
         node = self[parts]
 
-        if isinstance(node, Mapping):
-            if key not in node:
+        match node:
+            case Mapping():
+                if key not in node:
+                    raise KeyError(key)
+                return
+            case list() as items:
+                if not (isinstance(key, int) and 0 <= key < len(items)):
+                    raise KeyError(key)
+                return
+            case _:
                 raise KeyError(key)
-            return
-
-        if isinstance(node, list):
-            if not (isinstance(key, int) and 0 <= key < len(node)):
-                raise KeyError(key)
-            return
-
-        raise KeyError(key)
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
         node = self[parts]
-        if isinstance(node, Mapping):
-            return list(node.keys())
-        if isinstance(node, list):
-            return list(range(len(node)))
+        match node:
+            case Mapping():
+                return list(node.keys())
+            case list() as items:
+                return list(range(len(items)))
         # Non-traversable leaf.
         if parts:
             raise KeyError(parts[-1])

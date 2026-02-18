@@ -1,7 +1,5 @@
 """Pathable parsers module"""
 
-from __future__ import annotations
-
 from collections.abc import Hashable
 from typing import Sequence
 
@@ -12,6 +10,17 @@ def parse_parts(
     parts: Sequence[Hashable | None], sep: str = SEPARATOR
 ) -> list[Hashable]:
     """Parse (filter and split) path parts."""
+
+    def append_split(part: str) -> None:
+        if not part or part == ".":
+            return
+        if sep_check in part:
+            for split_part in reversed(part.split(sep_check)):
+                if split_part and split_part != ".":
+                    append(split_part)
+            return
+        append(part)
+
     parsed: list[Hashable] = []
     append = parsed.append
     sep_check = sep
@@ -24,24 +33,11 @@ def parse_parts(
             continue
         # Fast-path: str is most common.
         if isinstance(part, str):
-            if part and part != ".":
-                if sep_check in part:
-                    for x in reversed(part.split(sep_check)):
-                        if x and x != ".":
-                            append(x)
-                else:
-                    append(part)
+            append_split(part)
             continue
         # Fast-path: bytes, decode then treat as str.
         if isinstance(part, bytes):
-            part = part.decode("ascii")
-            if part and part != ".":
-                if sep_check in part:
-                    for x in reversed(part.split(sep_check)):
-                        if x and x != ".":
-                            append(x)
-                else:
-                    append(part)
+            append_split(part.decode("ascii"))
             continue
         # Fallback: Hashable (covers e.g. tuple, custom keys).
         if isinstance(part, Hashable):

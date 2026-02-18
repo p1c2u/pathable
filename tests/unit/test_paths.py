@@ -1,9 +1,9 @@
 from collections.abc import Hashable
 from collections.abc import Mapping
+from collections.abc import Sequence
 from pathlib import Path
 from types import GeneratorType
 from typing import Any
-from typing import Union
 from uuid import uuid4
 
 import pytest
@@ -17,9 +17,7 @@ from pathable.paths import FilesystemPath
 from pathable.paths import LookupPath
 
 
-class MockAccessor(
-    NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, Any]
-):
+class MockAccessor(NodeAccessor[Mapping[Hashable, Any] | Any, Hashable, Any]):
     """Mock accessor."""
 
     def __init__(
@@ -30,15 +28,13 @@ class MockAccessor(
         self._content = content
         self._exists = exists
 
-    def keys(self, parts: list[Hashable]) -> Any:
+    def keys(self, parts: Sequence[Hashable]) -> Any:
         return self._children_keys
 
-    def len(self, parts: list[Hashable]) -> int:
+    def len(self, parts: Sequence[Hashable]) -> int:
         return len(self._children_keys)
 
-    def read(
-        self, parts: list[Hashable]
-    ) -> Union[Mapping[Hashable, Any], Any]:
+    def read(self, parts: Sequence[Hashable]) -> Mapping[Hashable, Any] | Any:
         return self._content
 
 
@@ -50,17 +46,17 @@ class MockTraversableAccessor(
     def __init__(self, node: Mapping[Hashable, Any]):
         super().__init__(node)
 
-    def keys(self, parts: list[Hashable]) -> Any:
+    def keys(self, parts: Sequence[Hashable]) -> Any:
         node = self._get_node(self.node, parts)
         if isinstance(node, Mapping):
             return list(node.keys())
         raise KeyError
 
-    def len(self, parts: list[Hashable]) -> int:
+    def len(self, parts: Sequence[Hashable]) -> int:
         keys = self.keys(parts)
         return len(keys)
 
-    def read(self, parts: list[Hashable]) -> Any:
+    def read(self, parts: Sequence[Hashable]) -> Any:
         return self._read_node(self._get_node(self.node, parts))
 
     @classmethod
@@ -833,7 +829,7 @@ class TestAccessorPathKeys:
 
 class TestAccessorPathContains:
     class KeysKeyErrorAccessor(MockAccessor):
-        def keys(self, parts: list[Hashable]) -> Any:
+        def keys(self, parts: Sequence[Hashable]) -> Any:
             raise KeyError
 
     def test_valid(self):

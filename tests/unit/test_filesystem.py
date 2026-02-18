@@ -1,7 +1,6 @@
 """Tests for PathAccessor and FilesystemPath."""
 
 import os
-import sys
 from pathlib import Path
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -77,12 +76,8 @@ class TestPathAccessorStat:
         assert result is not None
         assert result["st_size"] == 6  # "nested" is 6 bytes
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 10),
-        reason="follow_symlinks requires Python 3.10+",
-    )
-    def test_stat_symlink_not_followed_py310(self, tmp_path):
-        """Test stat does not follow symlinks on Python 3.10+."""
+    def test_stat_symlink_not_followed(self, tmp_path):
+        """Test stat does not follow symlinks."""
         target_file = tmp_path / "target.txt"
         target_file.write_text("target content")
 
@@ -93,31 +88,8 @@ class TestPathAccessorStat:
         result = accessor.stat(["link.txt"])
 
         assert result is not None
-        # On 3.10+, should use stat(follow_symlinks=False)
+        # Should use stat(follow_symlinks=False)
         # which means we get the symlink's own stat, not the target's
-        # Verify it's the symlink by checking the size doesn't match target
-        target_stat = target_file.stat()
-        link_stat = link_file.lstat()
-        assert result["st_size"] == link_stat.st_size
-        # For symlinks, size should be small (path length), not target size
-        assert result["st_size"] != target_stat.st_size
-
-    @pytest.mark.skipif(
-        sys.version_info >= (3, 10), reason="lstat used on Python < 3.10"
-    )
-    def test_stat_uses_lstat_pre_py310(self, tmp_path):
-        """Test stat uses lstat on Python < 3.10."""
-        target_file = tmp_path / "target.txt"
-        target_file.write_text("target content")
-
-        link_file = tmp_path / "link.txt"
-        link_file.symlink_to(target_file)
-
-        accessor = PathAccessor(tmp_path)
-        result = accessor.stat(["link.txt"])
-
-        assert result is not None
-        # On <3.10, should use lstat()
         # Verify it's the symlink by checking the size doesn't match target
         target_stat = target_file.stat()
         link_stat = link_file.lstat()

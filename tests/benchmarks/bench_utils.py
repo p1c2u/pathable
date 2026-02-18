@@ -17,7 +17,6 @@ from typing import Callable
 from typing import Iterable
 from typing import Mapping
 from typing import MutableMapping
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -46,7 +45,7 @@ class BenchmarkResult:
         return 1.0 / per
 
 
-def _safe_int_env(name: str) -> Optional[int]:
+def _safe_int_env(name: str) -> int | None:
     value = os.environ.get(name)
     if value is None:
         return None
@@ -110,7 +109,7 @@ def run_benchmark(
 def results_to_json(
     *,
     results: Iterable[BenchmarkResult],
-    meta: Optional[Mapping[str, Any]] = None,
+    meta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     out: dict[str, Any] = {
         "meta": dict(meta or default_meta()),
