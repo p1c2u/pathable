@@ -82,6 +82,44 @@ def main(argv: Iterable[str] | None = None) -> int:
         )
     )
 
+    # __getitem__ leaf read: should return value for non-traversable child.
+    leaf_parent = LookupPath.from_lookup(
+        {"root": {"branch": {"leaf": "value"}}}, "root", "branch"
+    )
+
+    def getitem_leaf(_p: LookupPath = leaf_parent) -> None:
+        _ = _p["leaf"]
+
+    loops_getitem_leaf = 200_000 if not args.quick else 20_000
+    results.append(
+        run_benchmark(
+            "lookup.getitem.leaf",
+            getitem_leaf,
+            loops=loops_getitem_leaf,
+            repeats=repeats,
+            warmup_loops=warmup_loops,
+        )
+    )
+
+    # __getitem__ branch read: should return child path for traversable child.
+    branch_parent = LookupPath.from_lookup(
+        {"root": {"branch": {"child": {"x": 1}}}}, "root", "branch"
+    )
+
+    def getitem_branch(_p: LookupPath = branch_parent) -> None:
+        _ = _p["child"]
+
+    loops_getitem_branch = 200_000 if not args.quick else 20_000
+    results.append(
+        run_benchmark(
+            "lookup.getitem.branch",
+            getitem_branch,
+            loops=loops_getitem_branch,
+            repeats=repeats,
+            warmup_loops=warmup_loops,
+        )
+    )
+
     # Cache miss cost: disable cache and repeatedly read.
     deep_accessor = deep.accessor
     if not isinstance(deep_accessor, LookupAccessor):

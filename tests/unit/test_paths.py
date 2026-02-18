@@ -38,12 +38,10 @@ class MockAccessor(NodeAccessor[Mapping[Hashable, Any] | Any, Hashable, Any]):
         return self._content
 
 
-class MockTraversableAccessor(
-    NodeAccessor[Mapping[Hashable, Any], Hashable, Any]
-):
+class MockTraversableAccessor(NodeAccessor[Mapping[Any, Any], Hashable, Any]):
     """Mock accessor that implements _get_subnode for testing fast paths."""
 
-    def __init__(self, node: Mapping[Hashable, Any]):
+    def __init__(self, node: Mapping[Any, Any]):
         super().__init__(node)
 
     def keys(self, parts: Sequence[Hashable]) -> Any:
@@ -71,6 +69,57 @@ class MockTraversableAccessor(
             return node[part]
         except KeyError as exc:
             raise KeyError(part) from exc
+
+
+class CountingTraversableAccessor(
+    NodeAccessor[Mapping[Any, Any], Hashable, Any]
+):
+    """Accessor that counts traversal operations."""
+
+    def __init__(self, node: Mapping[Any, Any]):
+        super().__init__(node)
+        self.get_node_calls = 0
+
+    def keys(self, parts: Sequence[Hashable]) -> Any:
+        node = self._get_node(self.node, parts)
+        if isinstance(node, Mapping):
+            return list(node.keys())
+        raise KeyError
+
+    def len(self, parts: Sequence[Hashable]) -> int:
+        keys = self.keys(parts)
+        return len(keys)
+
+    def read(self, parts: Sequence[Hashable]) -> Any:
+        return self._read_node(self._get_node(self.node, parts))
+
+    @classmethod
+    def _is_traversable_node(cls, node: Mapping[Any, Any] | Any) -> bool:
+        return isinstance(node, Mapping)
+
+    @classmethod
+    def _read_node(cls, node: Any) -> Any:
+        return node
+
+    @classmethod
+    def _get_subnode(cls, node: Any, part: Hashable) -> Any:
+        if not isinstance(node, Mapping):
+            raise KeyError(part)
+        try:
+            return node[part]
+        except KeyError as exc:
+            raise KeyError(part) from exc
+
+    @classmethod
+    def _get_node(cls, node: Any, parts: Sequence[Hashable]) -> Any:
+        current = node
+        for part in parts:
+            current = cls._get_subnode(current, part)
+        return current
+
+    def __getitem__(self, parts: Sequence[Hashable]) -> Any:
+        self.get_node_calls += 1
+        return super().__getitem__(parts)
 
 
 class MockPart(str):
@@ -1022,6 +1071,17 @@ class TestLookupPathGetItem:
 
         with pytest.raises(KeyError):
             p["test4"]
+
+
+class TestAccessorPathGetItemPerformance:
+    def test_single_traversal_for_leaf_value(self):
+        accessor = CountingTraversableAccessor({"a": {"b": "value"}})
+        p = AccessorPath(accessor, "a")
+
+        result = p["b"]
+
+        assert result == "value"
+        assert accessor.get_node_calls == 1
 
 
 class TestLookupPathReadValue:

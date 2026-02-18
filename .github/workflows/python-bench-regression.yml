@@ -15,8 +15,8 @@ jobs:
     with:
       suffix: head
       quick: true
-      repeats: "3"
-      warmup_loops: "0"
+      repeats: "5"
+      warmup_loops: "1"
       artifact_name: pathable-bench-pr-head
 
   compare:
@@ -38,7 +38,9 @@ jobs:
         id: baseline-cache
         uses: actions/cache/restore@v4
         with:
-          path: reports
+          path: |
+            reports/bench-parse.baseline.json
+            reports/bench-lookup.baseline.json
           key: bench-baseline-py3.12-${{ github.event.pull_request.base.sha }}
           restore-keys: |
             bench-baseline-py3.12-
