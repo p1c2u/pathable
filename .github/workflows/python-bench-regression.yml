@@ -1,0 +1,77 @@
+name: CI / Benchmarks / Regression
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: bench-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  head:
+    name: "Bench head"
+    uses: ./.github/workflows/python-bench.yml
+    with:
+      suffix: head
+      quick: true
+      repeats: "3"
+      warmup_loops: "0"
+      artifact_name: pathable-bench-pr-head
+
+  compare:
+    name: "Bench compare (PR vs baseline)"
+    runs-on: ubuntu-latest
+    needs: head
+    env:
+      BENCH_TOLERANCE: "0.20"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download head benchmark results
+        uses: actions/download-artifact@v6
+        with:
+          name: pathable-bench-pr-head
+          path: reports
+
+      - name: Restore baseline cache
+        id: baseline-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: reports
+          key: bench-baseline-py3.12-${{ github.event.pull_request.base.sha }}
+          restore-keys: |
+            bench-baseline-py3.12-
+
+      - name: Ensure baseline exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f reports/bench-parse.baseline.json && -f reports/bench-lookup.baseline.json ]]; then
+            exit 0
+          fi
+          echo "Baseline benchmark cache not found for this repository." >&2
+          echo "Run the baseline workflow on master at least once to populate cache." >&2
+          exit 1
+
+      - name: Compare parse benchmark
+        shell: bash
+        run: |
+          python tests/benchmarks/compare_results.py \
+            --baseline reports/bench-parse.baseline.json \
+            --candidate reports/bench-parse.head.json \
+            --tolerance "$BENCH_TOLERANCE"
+
+      - name: Compare lookup benchmark
+        shell: bash
+        run: |
+          python tests/benchmarks/compare_results.py \
+            --baseline reports/bench-lookup.baseline.json \
+            --candidate reports/bench-lookup.head.json \
+            --tolerance "$BENCH_TOLERANCE"
+
+      - name: Upload comparison inputs
+        uses: actions/upload-artifact@v6
+        with:
+          name: pathable-bench-pr-results
+          path: reports/bench-*.json

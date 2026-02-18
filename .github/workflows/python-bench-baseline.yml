@@ -1,0 +1,38 @@
+name: CI / Benchmarks / Baseline
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      quick:
+        description: "Run a shorter benchmark (fewer iterations)"
+        required: false
+        default: true
+        type: boolean
+      repeats:
+        description: "Repeats per scenario (median is reported)"
+        required: false
+        default: "5"
+        type: string
+      warmup_loops:
+        description: "Warmup passes before timing"
+        required: false
+        default: "1"
+        type: string
+
+concurrency:
+  group: bench-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    name: "Bench baseline (master)"
+    uses: ./.github/workflows/python-bench.yml
+    with:
+      suffix: baseline
+      quick: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.quick == 'true' }}
+      repeats: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.repeats || '5' }}
+      warmup_loops: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.warmup_loops || '1' }}
+      save_cache_key: bench-baseline-py3.12-${{ github.sha }}
+      artifact_name: pathable-bench-baseline-results

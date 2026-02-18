@@ -1,0 +1,106 @@
+name: Benchmarks / Reusable
+
+on:
+  workflow_call:
+    inputs:
+      suffix:
+        required: true
+        type: string
+      git_ref:
+        required: false
+        type: string
+        default: ""
+      quick:
+        required: false
+        type: boolean
+        default: true
+      repeats:
+        required: false
+        type: string
+        default: "3"
+      warmup_loops:
+        required: false
+        type: string
+        default: "0"
+      save_cache_key:
+        required: false
+        type: string
+        default: ""
+      artifact_name:
+        required: false
+        type: string
+        default: "pathable-bench-results"
+
+env:
+  PYTHON_VERSION: "3.12"
+  POETRY_VERSION: "2.2.1"
+  PYTHONHASHSEED: "0"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.git_ref != '' && inputs.git_ref || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up poetry
+        uses: Gr1N/setup-poetry@v9
+        with:
+          poetry-version: ${{ env.POETRY_VERSION }}
+
+      - name: Configure poetry
+        run: poetry config virtualenvs.in-project true
+
+      - name: Set up cache
+        uses: actions/cache@v5
+        id: cache
+        with:
+          path: .venv
+          key: venv-bench-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Ensure cache is healthy
+        if: steps.cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: timeout 10s poetry run pip --version || rm -rf .venv
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Run parse benchmark
+        run: |
+          poetry run python -m tests.benchmarks.bench_parse \
+            --output "reports/bench-parse.${{ inputs.suffix }}.json" \
+            ${{ inputs.quick && '--quick' || '' }} \
+            --repeats "${{ inputs.repeats }}" \
+            --warmup-loops "${{ inputs.warmup_loops }}"
+
+      - name: Run lookup benchmark
+        run: |
+          poetry run python -m tests.benchmarks.bench_lookup \
+            --output "reports/bench-lookup.${{ inputs.suffix }}.json" \
+            ${{ inputs.quick && '--quick' || '' }} \
+            --repeats "${{ inputs.repeats }}" \
+            --warmup-loops "${{ inputs.warmup_loops }}"
+
+      - name: Save benchmark cache
+        if: inputs.save_cache_key != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            reports/bench-parse.${{ inputs.suffix }}.json
+            reports/bench-lookup.${{ inputs.suffix }}.json
+          key: ${{ inputs.save_cache_key }}
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            reports/bench-parse.${{ inputs.suffix }}.json
+            reports/bench-lookup.${{ inputs.suffix }}.json
