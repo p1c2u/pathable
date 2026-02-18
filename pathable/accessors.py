@@ -324,7 +324,7 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
 
     @classmethod
     def _is_traversable_node(cls, node: LookupNode) -> bool:
-        return isinstance(node, Mapping) or isinstance(node, list)
+        return isinstance(node, Mapping | list)
 
     def stat(self, parts: Sequence[LookupKey]) -> dict[str, Any] | None:
         try:
@@ -353,13 +353,13 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         except KeyError:
             return False
 
-        if isinstance(node, Mapping):
-            return key in node
-
-        if isinstance(node, list):
-            return isinstance(key, int) and 0 <= key < len(node)
-
-        return False
+        match node:
+            case Mapping():
+                return key in node
+            case list() as items:
+                return isinstance(key, int) and 0 <= key < len(items)
+            case _:
+                return False
 
     def require_child(
         self, parts: Sequence[LookupKey], key: LookupKey
@@ -367,24 +367,25 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         # Validate parent path for intermediate diagnostics.
         node = self[parts]
 
-        if isinstance(node, Mapping):
-            if key not in node:
+        match node:
+            case Mapping():
+                if key not in node:
+                    raise KeyError(key)
+                return
+            case list() as items:
+                if not (isinstance(key, int) and 0 <= key < len(items)):
+                    raise KeyError(key)
+                return
+            case _:
                 raise KeyError(key)
-            return
-
-        if isinstance(node, list):
-            if not (isinstance(key, int) and 0 <= key < len(node)):
-                raise KeyError(key)
-            return
-
-        raise KeyError(key)
 
     def keys(self, parts: Sequence[LookupKey]) -> Sequence[LookupKey]:
         node = self[parts]
-        if isinstance(node, Mapping):
-            return list(node.keys())
-        if isinstance(node, list):
-            return list(range(len(node)))
+        match node:
+            case Mapping():
+                return list(node.keys())
+            case list() as items:
+                return list(range(len(items)))
         # Non-traversable leaf.
         if parts:
             raise KeyError(parts[-1])

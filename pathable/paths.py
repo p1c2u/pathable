@@ -116,7 +116,7 @@ class BasePath:
         """
         return tuple(
             (f"{type(p).__module__}.{type(p).__qualname__}", c)
-            for p, c in zip(self.parts, self._cparts)
+            for p, c in zip(self.parts, self._cparts, strict=True)
         )
 
     def _make_child(self: TBasePath, args: list[Any]) -> TBasePath:
