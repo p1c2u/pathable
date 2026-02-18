@@ -17,9 +17,7 @@ from pathable.paths import FilesystemPath
 from pathable.paths import LookupPath
 
 
-class MockAccessor(
-    NodeAccessor[Mapping[Hashable, Any] | Any, Hashable, Any]
-):
+class MockAccessor(NodeAccessor[Mapping[Hashable, Any] | Any, Hashable, Any]):
     """Mock accessor."""
 
     def __init__(
@@ -36,9 +34,7 @@ class MockAccessor(
     def len(self, parts: Sequence[Hashable]) -> int:
         return len(self._children_keys)
 
-    def read(
-        self, parts: Sequence[Hashable]
-    ) -> Mapping[Hashable, Any] | Any:
+    def read(self, parts: Sequence[Hashable]) -> Mapping[Hashable, Any] | Any:
         return self._content
 
 

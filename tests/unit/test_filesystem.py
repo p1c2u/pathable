@@ -97,6 +97,7 @@ class TestPathAccessorStat:
         # For symlinks, size should be small (path length), not target size
         assert result["st_size"] != target_stat.st_size
 
+
 class TestPathAccessorKeys:
     """Tests for PathAccessor.keys() method."""
 
