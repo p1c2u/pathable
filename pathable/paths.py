@@ -429,10 +429,36 @@ class AccessorPath(BasePath, Generic[N, K, V]):
 
     def __getitem__(self: TAccessorPath, key: K) -> V | TAccessorPath:
         """Access a child path's value."""
-        path = self // key
-        if path.is_traversable():
-            return path
-        return cast(V, path.read_value())
+        path: TAccessorPath | None = None
+
+        # Fast path: if accessor supports direct traversal helpers, resolve the
+        # child once and classify it without repeating full-path lookups.
+        try:
+            parent = self.accessor[self.parts]
+            child = self.accessor._get_subnode(parent, key)
+        except NotImplementedError:
+            # Compatibility path for accessors that only implement keys/read.
+            path = self // key
+            if path.is_traversable():
+                return path
+            return cast(V, path.read_value())
+
+        try:
+            if self.accessor._is_traversable_node(child):
+                path = self._make_child_relpath(key)
+                return path
+        except NotImplementedError:
+            if path is None:
+                path = self // key
+            if path.is_traversable():
+                return path
+
+        try:
+            return cast(V, self.accessor._read_node(child))
+        except NotImplementedError:
+            if path is None:
+                path = self // key
+            return cast(V, path.read_value())
 
     def __contains__(self, key: K) -> bool:
         """Check if a key exists in the path.
