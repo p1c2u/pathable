@@ -9,11 +9,8 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 from typing import Generic
-from typing import Optional
 from typing import Sequence
-from typing import Type
 from typing import TypeVar
-from typing import Union
 from typing import cast
 from typing import overload
 
@@ -42,7 +39,7 @@ class BasePath:
     parts: tuple[Hashable, ...]
     separator: str = SEPARATOR
 
-    def __init__(self, *args: Any, separator: Optional[str] = None):
+    def __init__(self, *args: Any, separator: str | None = None):
         object.__setattr__(self, "separator", separator or self.separator)
         parts = self._parse_args(args, sep=self.separator)
         object.__setattr__(self, "parts", parts)
@@ -85,17 +82,17 @@ class BasePath:
 
     @classmethod
     def _from_parts(
-        cls: Type[TBasePath],
+        cls: type[TBasePath],
         args: Sequence[Any],
-        separator: Optional[str] = None,
+        separator: str | None = None,
     ) -> TBasePath:
         return cls(*args, separator=separator)
 
     @classmethod
     def _from_parsed_parts(
-        cls: Type[TBasePath],
+        cls: type[TBasePath],
         parts: tuple[Hashable, ...],
-        separator: Optional[str] = None,
+        separator: str | None = None,
     ) -> "TBasePath":
         instance = cls.__new__(cls)
         object.__setattr__(instance, "parts", parts)
@@ -340,17 +337,17 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         self,
         accessor: NodeAccessor[N, K, V],
         *args: Any,
-        separator: Optional[str] = None,
+        separator: str | None = None,
     ):
         object.__setattr__(self, "accessor", accessor)
         super().__init__(*args, separator=separator)
 
     @classmethod
     def _from_parts(
-        cls: Type[TAccessorPath],
+        cls: type[TAccessorPath],
         args: Sequence[Any],
-        separator: Optional[str] = None,
-        accessor: Union[NodeAccessor[N, K, V], None] = None,
+        separator: str | None = None,
+        accessor: NodeAccessor[N, K, V] | None = None,
     ) -> TAccessorPath:
         if accessor is None:
             raise ValueError("accessor must be provided")
@@ -358,10 +355,10 @@ class AccessorPath(BasePath, Generic[N, K, V]):
 
     @classmethod
     def _from_parsed_parts(
-        cls: Type[TAccessorPath],
+        cls: type[TAccessorPath],
         parts: tuple[Hashable, ...],
-        separator: Optional[str] = None,
-        accessor: Union[NodeAccessor[N, K, V], None] = None,
+        separator: str | None = None,
+        accessor: NodeAccessor[N, K, V] | None = None,
     ) -> TAccessorPath:
         if accessor is None:
             raise ValueError("accessor must be provided")
@@ -419,7 +416,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         for key in self.accessor.keys(self.parts):
             yield self._make_child_relpath(key)
 
-    def __getitem__(self: TAccessorPath, key: K) -> Union[V, TAccessorPath]:
+    def __getitem__(self: TAccessorPath, key: K) -> V | TAccessorPath:
         """Access a child path's value."""
         path = self // key
         if path.is_traversable():
@@ -466,10 +463,10 @@ class AccessorPath(BasePath, Generic[N, K, V]):
             yield key, self._make_child_relpath(key)
 
     @overload
-    def get(self, key: K) -> Optional[V]: ...
+    def get(self, key: K) -> V | None: ...
 
     @overload
-    def get(self, key: K, default: TDefault) -> Union[V, TDefault]: ...
+    def get(self, key: K, default: TDefault) -> V | TDefault: ...
 
     def get(self, key: K, default: object = None) -> object:
         """Return the value for key if key is in the path, else default."""
@@ -482,7 +479,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
         """Return the path's value."""
         return self.accessor.read(self.parts)
 
-    def stat(self) -> Union[dict[str, Any], None]:
+    def stat(self) -> dict[str, Any] | None:
         """Return metadata for the path, or None if it doesn't exist."""
         return self.accessor.stat(self.parts)
 
@@ -500,7 +497,7 @@ class FilesystemPath(AccessorPath[Path, str, bytes]):
 
     @classmethod
     def from_path(
-        cls: Type["FilesystemPath"],
+        cls: type["FilesystemPath"],
         path: Path,
     ) -> "FilesystemPath":
         """Public constructor for a Path-backed path."""

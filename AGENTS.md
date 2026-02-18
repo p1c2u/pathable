@@ -4,7 +4,7 @@ This file is a concise, repo-specific guide for agentic coding tools.
 If anything here conflicts with code or CI, follow the code/CI.
 
 ## Quick facts
-- Primary language: Python (>=3.9)
+- Primary language: Python (>=3.10)
 - Build/packaging: Poetry
 - Tests: pytest + coverage
 - Lint/format: black, isort, flynt (pre-commit)
@@ -93,4 +93,4 @@ If anything here conflicts with code or CI, follow the code/CI.
 ## Notes for agents
 - Prefer editing minimal sections; do not reformat unrelated code.
 - Run targeted tests when possible (single file or single test).
-- Keep changes compatible with Python 3.9+.
+- Keep changes compatible with Python 3.10+.

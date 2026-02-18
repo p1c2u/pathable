@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from types import GeneratorType
 from typing import Any
-from typing import Union
 from uuid import uuid4
 
 import pytest
@@ -18,7 +17,7 @@ from pathable.paths import LookupPath
 
 
 class MockAccessor(
-    NodeAccessor[Union[Mapping[Hashable, Any], Any], Hashable, Any]
+    NodeAccessor[Mapping[Hashable, Any] | Any, Hashable, Any]
 ):
     """Mock accessor."""
 
@@ -38,7 +37,7 @@ class MockAccessor(
 
     def read(
         self, parts: list[Hashable]
-    ) -> Union[Mapping[Hashable, Any], Any]:
+    ) -> Mapping[Hashable, Any] | Any:
         return self._content
 
 
