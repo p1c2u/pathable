@@ -153,8 +153,9 @@ class NodeAccessor(Generic[N, K, V]):
     @classmethod
     def _get_node(cls, node: N, parts: Sequence[K]) -> N:
         current = node
+        get_subnode = cls._get_subnode
         for part in parts:
-            current = cls._get_subnode(current, part)
+            current = get_subnode(current, part)
         return current
 
     @classmethod
@@ -332,15 +333,15 @@ class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
         except KeyError:
             return None
 
-        if self._is_traversable_node(node):
-            return {
-                "type": type(node).__name__,
-                "length": len(node),
-            }
-        try:
-            length = len(node)
-        except TypeError:
-            length = None
+        length: int | None
+        match node:
+            case Mapping() | list():
+                length = len(node)
+            case _:
+                try:
+                    length = len(node)
+                except TypeError:
+                    length = None
 
         return {
             "type": type(node).__name__,

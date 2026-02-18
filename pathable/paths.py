@@ -57,26 +57,37 @@ class BasePath:
         behavior.
         """
         parts: list[Hashable] = []
+        append = parts.append
+        extend = parts.extend
 
-        for a in args:
-            if isinstance(a, cls):
-                parts.extend(a.parts)
+        for arg in args:
+            part: Any = arg
+
+            if isinstance(part, cls):
+                extend(part.parts)
                 continue
-            if isinstance(a, bytes):
-                a = a.decode("ascii")
-            if isinstance(a, os.PathLike):
-                a = os.fspath(a)
-                if isinstance(a, bytes):
-                    a = a.decode("ascii")
-            if isinstance(a, (str, int)):
-                parts.append(a)
+
+            if isinstance(part, bytes):
+                append(part.decode("ascii"))
                 continue
-            if isinstance(a, Hashable):
-                parts.append(a)
+
+            if isinstance(part, os.PathLike):
+                part = os.fspath(part)
+                if isinstance(part, bytes):
+                    append(part.decode("ascii"))
+                    continue
+
+            if isinstance(part, (str, int)):
+                append(part)
                 continue
+
+            if isinstance(part, Hashable):
+                append(part)
+                continue
+
             raise TypeError(
                 "argument must be Hashable, bytes, os.PathLike, or BasePath; got %r"
-                % (type(a),)
+                % (type(part),)
             )
         return tuple(parse_parts(parts, sep))
 
@@ -393,7 +404,7 @@ class AccessorPath(BasePath, Generic[N, K, V]):
     def __floordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key appended."""
         self.accessor.require_child(self.parts, key)
-        return self / key
+        return self._make_child_relpath(key)
 
     def __rfloordiv__(self: TAccessorPath, key: K) -> TAccessorPath:
         """Return a new existing path with the key prepended."""

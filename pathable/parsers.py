@@ -25,24 +25,24 @@ def parse_parts(
     append = parsed.append
     sep_check = sep
     for part in reversed(parts):
-        match part:
-            case None:
-                continue
-            # Fast-path: int is common and never needs splitting/decoding.
-            case int():
-                append(part)
-            # Fast-path: str is most common.
-            case str() as text_part:
-                append_split(text_part)
-            # Fast-path: bytes, decode then treat as str.
-            case bytes() as binary_part:
-                append_split(binary_part.decode("ascii"))
-            # Fallback: Hashable (covers e.g. tuple, custom keys).
-            case _ if isinstance(part, Hashable):
-                append(part)
-            case _:
-                raise TypeError(
-                    f"part must be Hashable or None; got {type(part)!r}"
-                )
+        if part is None:
+            continue
+        # Fast-path: int is common and never needs splitting/decoding.
+        if isinstance(part, int):
+            append(part)
+            continue
+        # Fast-path: str is most common.
+        if isinstance(part, str):
+            append_split(part)
+            continue
+        # Fast-path: bytes, decode then treat as str.
+        if isinstance(part, bytes):
+            append_split(part.decode("ascii"))
+            continue
+        # Fallback: Hashable (covers e.g. tuple, custom keys).
+        if isinstance(part, Hashable):
+            append(part)
+            continue
+        raise TypeError(f"part must be Hashable or None; got {type(part)!r}")
     parsed.reverse()
     return parsed
