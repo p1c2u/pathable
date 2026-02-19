@@ -936,7 +936,10 @@ six = ">=1.9.0,<2"
 docs = ["proselint (>=0.10.2)", "sphinx (>=3)", "sphinx-argparse (>=0.2.5)", "sphinx-rtd-theme (>=0.4.3)", "towncrier (>=21.3)"]
 testing = ["coverage (>=4)", "coverage-enable-subprocess (>=1)", "flaky (>=3)", "packaging (>=20.0) ; python_version > \"3.4\"", "pytest (>=4)", "pytest-env (>=0.6.2)", "pytest-freezegun (>=0.4.1)", "pytest-mock (>=2)", "pytest-randomly (>=1)", "pytest-timeout (>=1)"]
 
+[extras]
+bench = []
+
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "fef5732c8b443ab4a7d7f997abb08cc050886e42b3e5c882df3f5b3ecf3e7314"
+content-hash = "5ee48c773806e8267b1f69c691f987f8a5e3ff9798638a244687ecd8ac4a593f"

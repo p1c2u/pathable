@@ -144,32 +144,49 @@ pip install -e git+https://github.com/p1c2u/pathable.git#egg=pathable
 
 ## Benchmarks
 
-Benchmarks live in `tests/benchmarks/` and produce JSON reports.
+Benchmark tooling is shipped in the package and exposed as `pathable-bench`.
 
-Local run (recommended as modules):
+Install (core package):
 
 ```console
-poetry run python -m tests.benchmarks.bench_parse --output reports/bench-parse.json
-poetry run python -m tests.benchmarks.bench_lookup --output reports/bench-lookup.json
+pip install pathable
+```
+
+Optional benchmark extra (reserved for benchmark-specific deps):
+
+```console
+pip install "pathable[bench]"
+```
+
+Run all benchmark scenarios for an implementation:
+
+```console
+poetry run pathable-bench run --impl pathable.LookupPath --output reports/bench-lookup.json
 ```
 
 Quick sanity run:
 
 ```console
-poetry run python -m tests.benchmarks.bench_parse --quick --output reports/bench-parse.quick.json
-poetry run python -m tests.benchmarks.bench_lookup --quick --output reports/bench-lookup.quick.json
+poetry run pathable-bench run --impl pathable.LookupPath --quick --output reports/bench-lookup.quick.json
 ```
 
-Compare two results (fails if candidate is >20% slower in any scenario):
+Compare two results (compares overlapping scenarios only; fails if candidate is >20% slower in any compared scenario):
 
 ```console
-poetry run python -m tests.benchmarks.compare_results \
+poetry run pathable-bench compare \
     --baseline reports/bench-before.json \
     --candidate reports/bench-after.json \
     --tolerance 0.20
 ```
 
+Deprecated compatibility wrappers still exist for now:
+
+```console
+poetry run python -m tests.benchmarks.bench_lookup --output reports/bench-lookup.json
+poetry run python -m tests.benchmarks.bench_parse --output reports/bench-parse.json
+poetry run python -m tests.benchmarks.compare_results --baseline a.json --candidate b.json
+```
+
 CI (on-demand):
 
 - GitHub Actions workflow `Benchmarks` runs via `workflow_dispatch` and uploads the JSON artifacts.
-

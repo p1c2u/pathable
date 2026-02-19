@@ -1,7 +1,7 @@
-"""Benchmark scripts for pathable.
+"""Deprecated compatibility wrappers for pathable benchmarks.
 
-Run as modules for the most reliable import behavior:
+Prefer:
 
-- `python -m tests.benchmarks.bench_lookup --output bench-lookup.json`
-- `python -m tests.benchmarks.bench_parse --output bench-parse.json`
+- `pathable-bench run --impl pathable.LookupPath --output bench.json`
+- `pathable-bench compare --baseline a.json --candidate b.json`
 """
