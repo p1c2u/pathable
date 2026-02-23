@@ -90,7 +90,7 @@ jobs:
 
       - name: Save benchmark cache
         if: inputs.save_cache_key != ''
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             reports/bench-parse.${{ inputs.suffix }}.json
