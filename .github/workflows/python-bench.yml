@@ -74,7 +74,7 @@ jobs:
 
       - name: Run parse benchmark
         run: |
-          poetry run python -m tests.benchmarks.bench_parse \
+          poetry run python -m pathable.benchmarks.bench_parse \
             --output "reports/bench-parse.${{ inputs.suffix }}.json" \
             ${{ inputs.quick && '--quick' || '' }} \
             --repeats "${{ inputs.repeats }}" \
@@ -82,7 +82,7 @@ jobs:
 
       - name: Run lookup benchmark
         run: |
-          poetry run python -m tests.benchmarks.bench_lookup \
+          poetry run python -m pathable.benchmarks.bench_lookup \
             --output "reports/bench-lookup.${{ inputs.suffix }}.json" \
             ${{ inputs.quick && '--quick' || '' }} \
             --repeats "${{ inputs.repeats }}" \
