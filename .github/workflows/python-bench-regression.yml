@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download head benchmark results
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: pathable-bench-pr-head
           path: reports
