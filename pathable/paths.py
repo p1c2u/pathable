@@ -391,6 +391,17 @@ class AccessorPath(BasePath, Generic[N, K, V]):
             accessor=self.accessor,
         )
 
+    def _identity_key(self) -> tuple[str, tuple[K, ...], int]:
+        return (self.separator, self.parts, id(self.accessor))
+
+    def __hash__(self) -> int:
+        return hash(self._identity_key())
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, AccessorPath):
+            return NotImplemented
+        return self._identity_key() == other._identity_key()
+
     def __rtruediv__(self: TAccessorPath, key: Hashable) -> TAccessorPath:
         try:
             return self._from_parts(
