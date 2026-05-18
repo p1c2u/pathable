@@ -118,9 +118,30 @@ Notes on parsing:
 
 Equality and ordering:
 
-* `BasePath` equality, hashing, and ordering are all based on both `separator` and `parts`.
-* Ordering is separator-sensitive and deterministic, even when parts mix types (e.g. ints and strings).
+* Two `BasePath` instances are equal if their `parts` are equal. The separator is presentation only — `BasePath("a", separator="/") == BasePath("a", separator=".")`.
+* Two `AccessorPath` instances are equal if they have equal `parts` *and* their accessors compare equal under the accessor's own `__eq__`. A plain `BasePath` is never equal to an `AccessorPath`.
 * Path parts are type-sensitive (`0` is not equal to `"0"`).
+* Ordering is address-based: separator is not part of the order, and it remains deterministic across mixed part types. For `AccessorPath`, different bindings with the same `parts` may compare ordering-equivalent while remaining unequal.
+
+Identity and lifecycle:
+
+* Build one accessor per resource and reuse it for every path you derive. `LookupPath.from_lookup(data)` constructs a fresh accessor on each call, which is convenient for one-off use but defeats the cache when called repeatedly over the same data:
+
+```python
+from pathable import LookupPath
+from pathable.accessors import LookupAccessor
+
+# Construct the accessor once, reuse it.
+accessor = LookupAccessor(data)
+root = LookupPath(accessor)
+
+# Every path derived from `accessor` shares its cache.
+a = root / "parts" / "part1"
+b = root / "parts" / "part1"
+assert a == b
+```
+
+* `path.is_same_binding(other)` is a stricter version of `==` that additionally requires both paths to share the *same accessor instance* (object identity), not just an `==`-equal one. Use it when you need to verify cache attribution or detect accidental accessor swaps.
 
 Lookup caching:
 
