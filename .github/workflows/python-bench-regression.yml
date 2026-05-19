@@ -73,7 +73,7 @@ jobs:
             --tolerance "$BENCH_TOLERANCE"
 
       - name: Upload comparison inputs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pathable-bench-pr-results
           path: reports/bench-*.json
