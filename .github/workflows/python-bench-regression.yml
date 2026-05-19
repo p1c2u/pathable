@@ -36,7 +36,7 @@ jobs:
 
       - name: Restore baseline cache
         id: baseline-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             reports/bench-parse.baseline.json
