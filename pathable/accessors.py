@@ -40,7 +40,16 @@ class NodeAccessor(Generic[N, K, V]):
     def __eq__(self, other: object) -> Any:
         if not isinstance(other, NodeAccessor):
             return NotImplemented
-        return self.node == other.node
+        # Object identity is the only universally-correct default. The
+        # base accessor cannot know what makes a wrapped resource "the
+        # same" — that's a per-resource-type question. Subclasses that
+        # represent a resource with a canonical name (URL, filesystem
+        # path, storage options, in-memory object reference) override
+        # both __eq__ and __hash__ in lockstep.
+        return self is other
+
+    def __hash__(self) -> int:
+        return object.__hash__(self)
 
     def stat(self, parts: Sequence[K]) -> dict[str, Any] | None:
         raise NotImplementedError
@@ -168,6 +177,18 @@ class NodeAccessor(Generic[N, K, V]):
 
 
 class PathAccessor(NodeAccessor[Path, str, bytes]):
+
+    def __eq__(self, other: object) -> Any:
+        if not isinstance(other, PathAccessor):
+            return NotImplemented
+        # pathlib.Path is hashable and value-equal on its canonical
+        # string form, so PathAccessor can use value-equality on the
+        # wrapped Path. Same-class check keeps behavioral subclasses
+        # in their own equivalence class.
+        return type(self) is type(other) and self._node == other._node
+
+    def __hash__(self) -> int:
+        return hash((type(self), self._node))
 
     def stat(self, parts: Sequence[str]) -> dict[str, Any] | None:
         subpath = self.node.joinpath(*parts)
@@ -322,6 +343,20 @@ class CachedSubscriptableAccessor(
 
 
 class LookupAccessor(CachedSubscriptableAccessor[LookupKey, LookupValue]):
+
+    def __eq__(self, other: object) -> Any:
+        if not isinstance(other, LookupAccessor):
+            return NotImplemented
+        # The wrapped node is typically an anonymous, mutable, unhashable
+        # container (dict, list). Its only canonical identity is its
+        # object reference: two LookupAccessors over the same Python
+        # object refer to the same logical resource; two over distinct
+        # value-equal objects do not. id() is safe in __hash__ because
+        # the accessor holds a strong reference to _node for its lifetime.
+        return type(self) is type(other) and self._node is other._node
+
+    def __hash__(self) -> int:
+        return hash((type(self), id(self._node)))
 
     @classmethod
     def _is_traversable_node(cls, node: LookupNode) -> bool:

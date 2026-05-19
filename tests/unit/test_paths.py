@@ -10,6 +10,7 @@ import pytest
 
 from pathable.accessors import LookupAccessor
 from pathable.accessors import NodeAccessor
+from pathable.accessors import PathAccessor
 from pathable.parsers import SEPARATOR
 from pathable.paths import AccessorPath
 from pathable.paths import BasePath
@@ -352,25 +353,26 @@ class TestBasePathHash:
     def test_empty(self):
         p = BasePath()
 
-        assert hash(p) == hash((p.separator, p.parts))
+        assert hash(p) == hash((p.parts,))
 
     def test_single(self):
         p = BasePath("part1")
 
-        assert hash(p) == hash((p.separator, p.parts))
+        assert hash(p) == hash((p.parts,))
 
     def test_double(self):
         args = ["part1", "part2"]
         p = BasePath(*args)
 
-        assert hash(p) == hash((p.separator, p.parts))
+        assert hash(p) == hash((p.parts,))
 
     def test_separator(self):
         args = ["part1", "part2"]
         separator = ","
         p = BasePath(*args, separator=separator)
 
-        assert hash(p) == hash((p.separator, p.parts))
+        # Separator is presentation, not identity; hash is parts-only.
+        assert hash(p) == hash((p.parts,))
 
     def test_cparts_cached(self):
         part = MockPart("part1")
@@ -382,18 +384,31 @@ class TestBasePathHash:
 
         # Hashing does not stringify parts.
         assert part.str_counter == 0
-        assert hash(p) == hash((p.separator, p.parts))
+        assert hash(p) == hash((p.parts,))
         assert part.str_counter == 0
-        assert hash(p) == hash((p.separator, p.parts))
+        assert hash(p) == hash((p.parts,))
         assert part.str_counter == 0
 
-    def test_separator_part_of_hash(self):
+    def test_separator_not_part_of_identity(self):
+        # Separator is presentation only: two paths with the same parts
+        # but different separators name the same address and are equal
+        # under both __eq__ and __hash__.
         p1 = BasePath("a", separator="/")
         p2 = BasePath("a", separator=".")
-        assert p1 != p2
-        assert len({p1, p2}) == 2
-        assert {p1: 1, p2: 2}[p1] == 1
-        assert {p1: 1, p2: 2}[p2] == 2
+        assert p1 == p2
+        assert hash(p1) == hash(p2)
+        assert len({p1, p2}) == 1
+
+    def test_hash_is_cached(self):
+        # Inspect __dict__ directly: cached_property stores the computed
+        # value under its attribute name on the instance dict, so its
+        # presence is the load-bearing signal that caching happened.
+        p = BasePath("a", "b", "c")
+        assert "_hash" not in p.__dict__
+        h = hash(p)
+        assert p.__dict__["_hash"] == h
+        # Subsequent calls return the same cached int without recomputing.
+        assert hash(p) == h
 
 
 class TestBasePathMakeChild:
@@ -695,8 +710,9 @@ class TestBasePathEq:
     def test_type_sensitive_parts(self):
         assert BasePath(0) != BasePath("0")
 
-    def test_separator_part_of_equality(self):
-        assert BasePath("a", separator="/") != BasePath("a", separator=".")
+    def test_separator_not_part_of_equality(self):
+        # Address-only identity: separator is presentation, not identity.
+        assert BasePath("a", separator="/") == BasePath("a", separator=".")
 
 
 class TestBasePathLt:
@@ -731,9 +747,14 @@ class TestBasePathLt:
         assert BasePath(0) < BasePath("0")
         assert not (BasePath("0") < BasePath(0))
 
-    def test_separator_affects_ordering(self):
-        # Separator is compared before parts.
-        assert BasePath("a", separator=".") < BasePath("a", separator="/")
+    def test_separator_does_not_affect_ordering(self):
+        # Ordering tracks identity: separator is not part of equality,
+        # so it is not part of ordering either. Two paths with the same
+        # parts compare as ordering-equivalent regardless of separator.
+        p1 = BasePath("a", separator=".")
+        p2 = BasePath("a", separator="/")
+        assert not (p1 < p2)
+        assert not (p2 < p1)
 
     def test_type_identifier_includes_module(self):
         # Two distinct types may share the same __qualname__.
@@ -1143,29 +1164,23 @@ class TestLookupPathGet:
 
         assert result == value
 
-    @pytest.mark.parametrize(
-        "resource,key,expected",
-        (
-            # returns value
-            [
-                {"test1": "test2"},
-                "test1",
-                "test2",
-            ],
-            # returns subpath
-            [
-                {"test1": {"test2": "test3"}},
-                "test1",
-                LookupPath._from_lookup(
-                    {"test1": {"test2": "test3"}}, "test1"
-                ),
-            ],
-        ),
-    )
-    def test_key_exists(self, resource, key, expected):
+    def test_key_exists_returns_leaf_value(self):
+        resource = {"test1": "test2"}
         p = LookupPath._from_lookup(resource)
 
-        result = p.get(key)
+        result = p.get("test1")
+
+        assert result == "test2"
+
+    def test_key_exists_returns_subpath(self):
+        # `expected` must share the same `resource` object: under the
+        # new accessor identity model, two LookupAccessors over
+        # value-equal but distinct dicts represent distinct resources.
+        resource = {"test1": {"test2": "test3"}}
+        p = LookupPath._from_lookup(resource)
+        expected = LookupPath._from_lookup(resource, "test1")
+
+        result = p.get("test1")
 
         assert result == expected
 
@@ -1230,26 +1245,20 @@ class TestLookupPathFloorDiv:
         assert excinfo.value.args == ("missing",)
 
     @pytest.mark.parametrize(
-        "resource,key,expected",
-        (
-            [
-                {"test1": "test2"},
-                "test1",
-                LookupPath._from_lookup({"test1": "test2"}, "test1"),
-            ],
-            [
-                {"test1": {"test2": "test3"}},
-                "test1",
-                LookupPath._from_lookup(
-                    {"test1": {"test2": "test3"}}, "test1"
-                ),
-            ],
-        ),
+        "resource",
+        [
+            {"test1": "test2"},
+            {"test1": {"test2": "test3"}},
+        ],
     )
-    def test_key_exists(self, resource, key, expected):
+    def test_key_exists(self, resource):
+        # Both `p` and `expected` must wrap the *same* `resource`
+        # object: under the new accessor identity model, two
+        # LookupAccessors over distinct dicts are distinct resources.
         p = LookupPath._from_lookup(resource)
+        expected = LookupPath._from_lookup(resource, "test1")
 
-        result = p // key
+        result = p // "test1"
 
         assert result == expected
 
@@ -1276,26 +1285,20 @@ class TestLookupPathRfloorDiv:
         assert excinfo.value.args == ("missing",)
 
     @pytest.mark.parametrize(
-        "resource,key,expected",
-        (
-            [
-                {"test1": "test2"},
-                "test1",
-                LookupPath._from_lookup({"test1": "test2"}, "test1"),
-            ],
-            [
-                {"test1": {"test2": "test3"}},
-                "test1",
-                LookupPath._from_lookup(
-                    {"test1": {"test2": "test3"}}, "test1"
-                ),
-            ],
-        ),
+        "resource",
+        [
+            {"test1": "test2"},
+            {"test1": {"test2": "test3"}},
+        ],
     )
-    def test_key_exists(self, resource, key, expected):
+    def test_key_exists(self, resource):
+        # Both `p` and `expected` must wrap the *same* `resource`
+        # object: under the new accessor identity model, two
+        # LookupAccessors over distinct dicts are distinct resources.
         p = LookupPath._from_lookup(resource)
+        expected = LookupPath._from_lookup(resource, "test1")
 
-        result = key // p
+        result = "test1" // p
 
         assert result == expected
 
@@ -1628,6 +1631,171 @@ class TestPathlibLikeManipulation:
         p = BasePath("a", "b")
         assert p.as_posix() == "a/b"
         assert p.__fspath__() == "a/b"
+
+
+class TestNodeAccessorIdentity:
+    """Locks in the per-accessor identity policy."""
+
+    def test_node_accessor_is_hashable(self):
+        # The base NodeAccessor must be hashable so it can participate
+        # in path identity tuples.
+        a = MockAccessor()
+        assert hash(a) == hash(a)
+        {a}  # construct a set; would raise if unhashable
+
+    def test_node_accessor_default_is_object_identity(self):
+        # The base NodeAccessor cannot know what makes a wrapped resource
+        # "the same"; default identity is the object itself.
+        a1 = MockAccessor()
+        a2 = MockAccessor()
+        assert a1 == a1
+        assert a1 != a2
+        assert hash(a1) == object.__hash__(a1)
+
+    def test_lookup_accessor_same_node_compares_equal(self):
+        # LookupAccessor identity = is-on-node: two LookupAccessors over
+        # the *same* dict object are interchangeable.
+        d = {"x": 1}
+        a1 = LookupAccessor(d)
+        a2 = LookupAccessor(d)
+        assert a1 == a2
+        assert hash(a1) == hash(a2)
+
+    def test_lookup_accessor_distinct_nodes_compare_unequal(self):
+        # Two LookupAccessors over value-equal but distinct dicts
+        # represent distinct resources (the user constructed each one;
+        # nothing ties them together).
+        a1 = LookupAccessor({"x": 1})
+        a2 = LookupAccessor({"x": 1})
+        assert a1 != a2
+
+    def test_lookup_accessor_different_class_not_equal(self):
+        class OtherLookup(LookupAccessor):
+            pass
+
+        d = {"x": 1}
+        assert LookupAccessor(d) != OtherLookup(d)
+
+    def test_path_accessor_value_equal_on_path(self):
+        # PathAccessor identity = value-equality on the wrapped Path
+        # (Path is hashable and value-equal on its canonical string),
+        # so two PathAccessors built from separately-constructed Paths
+        # pointing at the same location compare equal.
+        a1 = PathAccessor(Path("/tmp/x"))
+        a2 = PathAccessor(Path("/tmp/x"))
+        assert a1 == a2
+        assert hash(a1) == hash(a2)
+
+    def test_path_accessor_different_path_not_equal(self):
+        assert PathAccessor(Path("/tmp/x")) != PathAccessor(Path("/tmp/y"))
+
+    def test_path_accessor_different_class_not_equal(self):
+        class OtherPathAccessor(PathAccessor):
+            pass
+
+        p = Path("/tmp/x")
+        assert PathAccessor(p) != OtherPathAccessor(p)
+
+
+class TestPathIdentityCrossClass:
+    """BasePath and AccessorPath live in distinct equivalence classes."""
+
+    def test_basepath_not_equal_to_accessorpath(self):
+        accessor = LookupAccessor({"a": "b"})
+        assert BasePath("a") != LookupPath(accessor, "a")
+
+    def test_basepath_not_equal_to_accessorpath_reflected(self):
+        # Reflected dispatch must give the same answer.
+        accessor = LookupAccessor({"a": "b"})
+        assert LookupPath(accessor, "a") != BasePath("a")
+
+    def test_subclass_compares_equal_to_base_when_address_and_binding_match(
+        self,
+    ):
+        # Subclasses of AccessorPath that don't change identity semantics
+        # compare equal to the base (LSP). Class is not part of identity.
+        class MyLookupPath(LookupPath):
+            pass
+
+        accessor = LookupAccessor({"a": "b"})
+        assert LookupPath(accessor, "a") == MyLookupPath(accessor, "a")
+        assert hash(LookupPath(accessor, "a")) == hash(
+            MyLookupPath(accessor, "a")
+        )
+
+    def test_distinct_accessor_subclasses_not_equal(self):
+        # Different accessor backings = different resources.
+        # PathAccessor and LookupAccessor are never `==`.
+        lp = LookupPath.from_lookup({})
+        fp = FilesystemPath(PathAccessor(Path("/tmp")))
+        assert lp != fp
+
+    def test_accessorpath_ordering_is_address_based_across_bindings(self):
+        # Ordering is useful for presentation and stable sorting by
+        # address, but it is not a semantic identity check. Distinct
+        # bindings with the same parts are ordering-equivalent while
+        # remaining unequal.
+        p1 = LookupPath.from_lookup({"a": 1}, "a")
+        p2 = LookupPath.from_lookup({"a": 1}, "a")
+
+        assert p1 != p2
+        assert not (p1 < p2)
+        assert p1 <= p2
+        assert not (p1 > p2)
+        assert p1 >= p2
+
+
+class TestAccessorPathIsSameBinding:
+    def test_same_accessor_instance_is_same_binding(self):
+        accessor = LookupAccessor({"a": {"b": 1}})
+        p1 = LookupPath(accessor, "a")
+        p2 = LookupPath(accessor, "a")
+        assert p1.is_same_binding(p2)
+
+    def test_equal_accessors_distinct_instances_not_same_binding(self):
+        # Two LookupAccessors over the same dict are `==` (is-on-node),
+        # so the paths compare `==`, but they're not the same accessor
+        # *instance* — is_same_binding draws the stricter line.
+        d = {"a": {"b": 1}}
+        p1 = LookupPath(LookupAccessor(d), "a")
+        p2 = LookupPath(LookupAccessor(d), "a")
+        assert p1 == p2
+        assert not p1.is_same_binding(p2)
+
+    def test_is_same_binding_requires_accessorpath(self):
+        accessor = LookupAccessor({"a": "b"})
+        assert not LookupPath(accessor, "a").is_same_binding(BasePath("a"))
+
+
+class TestPathHashEqInvariant:
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (BasePath("a", "b"), BasePath("a", "b")),
+            (BasePath("a", separator="/"), BasePath("a", separator=".")),
+        ],
+    )
+    def test_basepath_eq_implies_hash_eq(self, a, b):
+        assert a == b
+        assert hash(a) == hash(b)
+
+    def test_accessorpath_eq_implies_hash_eq(self):
+        accessor = LookupAccessor({"x": 1})
+        a = LookupPath(accessor, "x")
+        b = LookupPath(accessor, "x")
+        assert a == b
+        assert hash(a) == hash(b)
+
+    def test_accessorpath_eq_implies_hash_eq_across_accessor_instances(
+        self,
+    ):
+        # Two LookupAccessor instances over the same dict are == ; the
+        # paths over them must therefore be == and share a hash.
+        d = {"x": 1}
+        a = LookupPath(LookupAccessor(d), "x")
+        b = LookupPath(LookupAccessor(d), "x")
+        assert a == b
+        assert hash(a) == hash(b)
 
 
 class TestAccessorPathPathlibCompat:

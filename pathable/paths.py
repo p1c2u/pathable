@@ -32,9 +32,18 @@ TAccessorPath = TypeVar("TAccessorPath", bound="AccessorPath[Any, Any, Any]")
 TDefault = TypeVar("TDefault")
 
 
-@dataclass(frozen=True, init=False)
+@dataclass(frozen=True, init=False, eq=False)
 class BasePath:
-    """Base path."""
+    """Base path.
+
+    Identity is the *address*: two paths are equal if their ``parts`` are
+    equal. The separator is presentation only — two paths that name the
+    same address but render differently are still equal. Subclasses that
+    introduce a resource binding (``AccessorPath``) extend the identity
+    to include the binding and override ``__eq__`` accordingly; the
+    BasePath/AccessorPath boundary is the only place class participates
+    in equality.
+    """
 
     parts: tuple[Hashable, ...]
     separator: str = SEPARATOR
@@ -279,8 +288,18 @@ class BasePath:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self)!r})"
 
+    def _identity_key(self) -> tuple[Any, ...]:
+        # Address-only identity for BasePath. Separator is presentation,
+        # not identity. AccessorPath overrides this to include the
+        # accessor as binding.
+        return (self.parts,)
+
+    @cached_property
+    def _hash(self) -> int:
+        return hash(self._identity_key())
+
     def __hash__(self) -> int:
-        return hash((self.separator, self.parts))
+        return self._hash
 
     def __truediv__(self: TBasePath, key: Any) -> TBasePath:
         try:
@@ -300,42 +319,40 @@ class BasePath:
         except TypeError:
             return NotImplemented
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self.parts) == (other.separator, other.parts)
+        # AccessorPath overrides __eq__ to enforce cross-class
+        # discrimination (an AccessorPath carries a binding that a plain
+        # BasePath does not, so they are never equal). Here we are on the
+        # BasePath-side dispatch; if `other` is an AccessorPath, Python's
+        # reflected-dispatch rules have already given AccessorPath.__eq__
+        # the first chance to answer. Reaching this branch means both
+        # sides are plain BasePaths (or AccessorPath's __eq__ returned
+        # NotImplemented), so address-only comparison is correct.
+        return self.parts == other.parts
 
     def __lt__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) < (
-            other.separator,
-            other._cmp_parts,
-        )
+        # Ordering is address-based: separator is presentation, and
+        # AccessorPath bindings are intentionally outside the sort key.
+        return self._cmp_parts < other._cmp_parts
 
     def __le__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) <= (
-            other.separator,
-            other._cmp_parts,
-        )
+        return self._cmp_parts <= other._cmp_parts
 
     def __gt__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) > (
-            other.separator,
-            other._cmp_parts,
-        )
+        return self._cmp_parts > other._cmp_parts
 
     def __ge__(self, other: Any) -> bool:
         if not isinstance(other, BasePath):
             return NotImplemented
-        return (self.separator, self._cmp_parts) >= (
-            other.separator,
-            other._cmp_parts,
-        )
+        return self._cmp_parts >= other._cmp_parts
 
 
 class AccessorPath(BasePath, Generic[N, K, V]):
@@ -390,6 +407,43 @@ class AccessorPath(BasePath, Generic[N, K, V]):
             separator=self.separator,
             accessor=self.accessor,
         )
+
+    def _identity_key(self) -> tuple[Any, ...]:
+        # Identity = (address, binding). The accessor's own __eq__ and
+        # __hash__ decide what makes two accessors the same resource;
+        # the path layer simply delegates to it via tuple comparison.
+        return (self.parts, self.accessor)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BasePath):
+            return NotImplemented
+        # Cross-class discrimination: a plain BasePath has no binding,
+        # so it can never equal an AccessorPath. This preserves
+        # transitivity — otherwise BasePath("x") could simultaneously
+        # equal two AccessorPaths over distinct resources.
+        if not isinstance(other, AccessorPath):
+            return False
+        return self.parts == other.parts and self.accessor == other.accessor
+
+    # Re-bind __hash__: defining __eq__ on a class otherwise sets
+    # __hash__ to None. The BasePath implementation dispatches through
+    # _identity_key, which we override above, so this is the correct
+    # hash for AccessorPath identity (parts, accessor).
+    __hash__ = BasePath.__hash__
+
+    def is_same_binding(self, other: object) -> bool:
+        """Return True if ``other`` is an equal address bound to the
+        same accessor *instance* (object identity on the accessor).
+
+        Stricter than ``==``, which only requires that the accessors
+        compare equal under their own ``__eq__`` semantics. Use this
+        when you need to assert that two paths are not just naming the
+        same resource but are literally backed by the same accessor
+        object — for example, to verify cache attribution.
+        """
+        if not isinstance(other, AccessorPath):
+            return False
+        return self.parts == other.parts and self.accessor is other.accessor
 
     def __rtruediv__(self: TAccessorPath, key: Hashable) -> TAccessorPath:
         try:
