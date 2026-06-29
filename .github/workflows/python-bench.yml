@@ -58,7 +58,7 @@ jobs:
         run: poetry config virtualenvs.in-project true
 
       - name: Set up cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: cache
         with:
           path: .venv
@@ -90,7 +90,7 @@ jobs:
 
       - name: Save benchmark cache
         if: inputs.save_cache_key != ''
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             reports/bench-parse.${{ inputs.suffix }}.json
